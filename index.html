@@ -76,6 +76,17 @@
   }
   #gate button:first-child { background: var(--gold); color: #000; }
   #gate button.quiet { border-color: var(--muted); color: var(--muted); }
+  .ownmusic { color: var(--muted); font-size: 14px; cursor: pointer; text-decoration: underline dotted; }
+  .ownmusic:hover { color: var(--gold); }
+  #ownName { color: var(--gold); font-size: 13px; min-height: 1em; }
+  /* Kleiner Player unten links (nur sichtbar während das Original läuft) */
+  #ytbox {
+    position: absolute; left: 16px; bottom: 16px; z-index: 6; width: 200px;
+    opacity: 0; pointer-events: none; transition: opacity 0.8s;
+    font-size: 11px; color: var(--muted);
+  }
+  #ytbox.show { opacity: 0.8; }
+  #ytbox iframe { width: 200px; height: 113px; border: 0; border-radius: 6px; display: block; margin-bottom: 4px; }
   @keyframes galaxy { 0%{opacity:0} 15%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
   .crawl-wrap {
     position: absolute; inset: 0; perspective: 380px; overflow: hidden;
@@ -251,6 +262,8 @@
       <button id="goSound">▶ Mit Ton starten</button>
       <button id="goQuiet" class="quiet">Ohne Ton</button>
     </div>
+    <label class="ownmusic">🎵 Eigene Musik wählen<input type="file" id="ownFile" accept="audio/*" hidden></label>
+    <div id="ownName"></div>
   </div>
   <div class="galaxy">Vor gar nicht langer Zeit, auf einer Baustelle<br>weit, weit weg von zu Hause…</div>
   <div class="crawl-wrap">
@@ -262,6 +275,7 @@
       <p>Der Koffer ist gepackt, der Hyperantrieb vorgeheizt. Nur die Zeit selbst steht noch zwischen unserem Helden und seinem eigenen Sofa…</p>
     </div>
   </div>
+  <div id="ytbox"><div id="yt"></div><span>♪ John Williams – Main Title</span></div>
   <button id="skip">Überspringen ▸</button>
 </div>
 
@@ -400,7 +414,7 @@
     if (introDone) return;
     introDone = true;
     intro.classList.add("fade"); setTimeout(() => intro.remove(), 1300);
-    stopFanfare();
+    stopFanfare(); stopIntroMusic();
     if (soundOn) setTimeout(sndIgnite, 600);
   }
   function startIntro(withSound) {
@@ -408,7 +422,7 @@
     try { localStorage.setItem("ton", soundOn ? "an" : "aus"); } catch (e) {}
     renderSoundBtn();
     intro.classList.add("go");
-    if (soundOn) playFanfare();
+    if (soundOn) startIntroMusic();
     setTimeout(endIntro, 34000);
   }
   document.getElementById("goSound").onclick = () => startIntro(true);
@@ -896,7 +910,7 @@
     strings(bus, nf(bass) / 2, t, dur, vol * 0.8, 0.05);
   }
 
-  function playFanfare() {
+  function playFanfare(lead = 4.25) {
     const a = audio();
     fanfareBus = a.createGain(); fanfareBus.gain.value = 1;
     const dry = a.createGain(), wet = a.createGain(), rev = makeReverb(a, 3.2);
@@ -907,11 +921,11 @@
     const t0 = a.currentTime + 0.25, beat = 0.4;
 
     // Teil 1: geheimnisvolle Stille während "Vor gar nicht langer Zeit…"
-    ["Bb2", "F3", "D4"].forEach(n => strings(bus, nf(n), t0, 4.1, 0.025, 1.5));
-    glock(bus, nf("F5"), t0 + 1.0, 0.05); glock(bus, nf("D6"), t0 + 2.2, 0.04);
+    if (lead > 4) ["Bb2", "F3", "D4"].forEach(n => strings(bus, nf(n), t0, 4.1, 0.025, 1.5));
+    if (lead > 4) { glock(bus, nf("F5"), t0 + 1.0, 0.05); glock(bus, nf("D6"), t0 + 2.2, 0.04); }
 
     // Teil 2: großer Orchesterschlag, wenn der Titel erscheint
-    const hit = t0 + 4.25;
+    const hit = t0 + lead;
     tutti(bus, ["Bb3", "D4", "F4", "Bb4", "D5"], "Bb2", hit, 1.5, 0.06);
     cymbal(bus, hit, 0.5); timpani(bus, nf("Bb2") / 2, hit, 0.9); timpani(bus, nf("F2") / 2, hit + 0.13, 0.6);
 
@@ -967,6 +981,91 @@
     g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0.0001, t + 1.2);
     const bus = fanfareBus; fanfareBus = null;
     setTimeout(() => bus.disconnect(), 1400);
+  }
+
+  // ===== Intro-Musik: eigene Datei > Original von YouTube > eigene Fanfare =====
+  const YT_ID = "Q0cz6i9K2Ao"; // "Main Title" · John Williams · London Symphony Orchestra (offiziell)
+  const HIT = 4.25;            // Sekunden bis der Titel erscheint
+  let yt = null, ytReady = false, ytFailed = false, ownAudio = null, ownGain = null, introMusic = null;
+
+  window.onYouTubeIframeAPIReady = () => {
+    yt = new YT.Player("yt", {
+      videoId: YT_ID,
+      playerVars: { controls: 0, disablekb: 1, playsinline: 1, rel: 0, modestbranding: 1 },
+      events: {
+        onReady: () => { ytReady = true; },
+        onError: () => { ytFailed = true; },
+      },
+    });
+  };
+  (() => {
+    const s = document.createElement("script");
+    s.src = "https://www.youtube.com/iframe_api";
+    s.onerror = () => { ytFailed = true; };
+    document.head.appendChild(s);
+  })();
+
+  // Eigene Musikdatei (bleibt auf dem Gerät, wird nirgends hochgeladen)
+  $("ownFile").addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (ownAudio) URL.revokeObjectURL(ownAudio.src);
+    ownAudio = new Audio(URL.createObjectURL(file));
+    ownAudio.preload = "auto";
+    ownGain = null;
+    $("ownName").textContent = "✓ " + file.name;
+  });
+
+  function startIntroMusic() {
+    const a = audio();
+    // 1) Eigene Datei: sofort leise starten (Klick erlaubt Ton), beim Titel von vorne laut
+    if (ownAudio) {
+      if (!ownGain) { ownGain = a.createGain(); a.createMediaElementSource(ownAudio).connect(ownGain).connect(a.destination); }
+      ownGain.gain.value = 0;
+      ownAudio.currentTime = 0;
+      ownAudio.play().catch(() => {});
+      setTimeout(() => { ownAudio.currentTime = 0; ownGain.gain.setValueAtTime(1, ac.currentTime); }, HIT * 1000);
+      introMusic = "own";
+      return;
+    }
+    // 2) Original von YouTube: genauso leise vorstarten, beim Titel von vorne laut
+    if (yt && ytReady && !ytFailed) {
+      yt.setVolume(0); yt.seekTo(0, true); yt.playVideo();
+      introMusic = "yt";
+      setTimeout(() => {
+        if (introMusic !== "yt") return;
+        const st = yt.getPlayerState();
+        if (ytFailed || (st !== 1 && st !== 3)) {
+          // YouTube blockiert (z. B. am Handy) → eigene Fanfare
+          try { yt.stopVideo(); } catch (e) {}
+          introMusic = "fanfare"; playFanfare(HIT - 1.2);
+        }
+      }, 1200);
+      setTimeout(() => {
+        if (introMusic !== "yt") return;
+        yt.seekTo(0, true); yt.setVolume(100);
+        $("ytbox").classList.add("show");
+      }, HIT * 1000);
+      return;
+    }
+    // 3) Eigene Fanfare
+    introMusic = "fanfare";
+    playFanfare();
+  }
+
+  function stopIntroMusic() {
+    const was = introMusic; introMusic = null;
+    if (was === "own" && ownAudio) {
+      ownGain.gain.setTargetAtTime(0, ac.currentTime, 0.4);
+      setTimeout(() => ownAudio.pause(), 1800);
+    }
+    if (was === "yt" && yt) {
+      let v = 100;
+      const fade = setInterval(() => {
+        v -= 8; try { yt.setVolume(Math.max(0, v)); } catch (e) {}
+        if (v <= 0) { clearInterval(fade); try { yt.stopVideo(); } catch (e) {} }
+      }, 100);
+    }
   }
 
   function renderSoundBtn() {
