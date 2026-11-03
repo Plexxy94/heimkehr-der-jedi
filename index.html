@@ -1028,29 +1028,37 @@
       introMusic = "own";
       return;
     }
-    // 2) Original von YouTube: genauso leise vorstarten, beim Titel von vorne laut
-    if (yt && ytReady && !ytFailed) {
+    // 2) Original von YouTube: leise vorstarten, beim Titel von vorne laut.
+    //    Ist der Player beim Klick noch nicht fertig, wird bis kurz vor dem Titel gewartet.
+    const clickAt = Date.now();
+    introMusic = "yt";
+    const fallback = () => {
+      if (introMusic !== "yt") return;
+      try { yt && yt.stopVideo(); } catch (e) {}
+      introMusic = "fanfare";
+      playFanfare(Math.max(0.3, HIT - (Date.now() - clickAt) / 1000));
+    };
+    const tryStart = () => {
+      if (introMusic !== "yt") return;
+      if (ytFailed) return fallback();
+      if (!(yt && ytReady)) {
+        if (Date.now() - clickAt > (HIT - 0.8) * 1000) return fallback();
+        return setTimeout(tryStart, 150);
+      }
       yt.setVolume(0); yt.seekTo(0, true); yt.playVideo();
-      introMusic = "yt";
+      // läuft das Video nach kurzer Zeit nicht (z. B. am Handy blockiert) → eigene Fanfare
       setTimeout(() => {
         if (introMusic !== "yt") return;
         const st = yt.getPlayerState();
-        if (ytFailed || (st !== 1 && st !== 3)) {
-          // YouTube blockiert (z. B. am Handy) → eigene Fanfare
-          try { yt.stopVideo(); } catch (e) {}
-          introMusic = "fanfare"; playFanfare(HIT - 1.2);
-        }
-      }, 1200);
-      setTimeout(() => {
-        if (introMusic !== "yt") return;
-        yt.seekTo(0, true); yt.setVolume(100);
-        $("ytbox").classList.add("show");
-      }, HIT * 1000);
-      return;
-    }
-    // 3) Eigene Fanfare
-    introMusic = "fanfare";
-    playFanfare();
+        if (ytFailed || (st !== 1 && st !== 3)) fallback();
+      }, Math.max(800, Math.min(1500, HIT * 1000 - (Date.now() - clickAt) - 300)));
+    };
+    tryStart();
+    setTimeout(() => {
+      if (introMusic !== "yt") return;
+      yt.seekTo(0, true); yt.setVolume(100);
+      $("ytbox").classList.add("show");
+    }, HIT * 1000);
   }
 
   function stopIntroMusic() {
