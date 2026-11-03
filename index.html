@@ -49,6 +49,8 @@
 
   /* --- Intro-Lauftext --- */
   #intro {
+    /* Intro bleibt immer im Original-Look, egal welche Seite gewählt ist */
+    --gold: #ffe81f; --blue: #4fc3ff; --muted: #8a93a8;
     position: fixed; inset: 0; z-index: 5;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     background: #000; transition: opacity 1.2s;
@@ -56,21 +58,36 @@
   #intro.fade { opacity: 0; pointer-events: none; }
   .galaxy {
     color: var(--blue); font-size: clamp(18px, 3.5vw, 30px); text-align: center;
-    padding: 0 16px; animation: galaxy 4.5s forwards;
+    padding: 0 16px; opacity: 0;
   }
+  #intro.go .galaxy { animation: galaxy 4.5s forwards; }
+  #intro.go #gate { display: none; }
+  #gate {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 22px; padding: 16px; text-align: center;
+  }
+  #gate h2 { font-family: Orbitron, sans-serif; color: var(--gold); font-size: clamp(22px, 5vw, 40px); letter-spacing: 0.08em; }
+  #gate p { color: var(--muted); max-width: 420px; }
+  #gate .btns { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  #gate button {
+    background: transparent; color: var(--gold); border: 2px solid var(--gold); border-radius: 30px;
+    padding: 12px 24px; font-family: Orbitron, sans-serif; font-size: 14px; letter-spacing: 0.08em; cursor: pointer;
+  }
+  #gate button:first-child { background: var(--gold); color: #000; }
+  #gate button.quiet { border-color: var(--muted); color: var(--muted); }
   @keyframes galaxy { 0%{opacity:0} 15%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
   .crawl-wrap {
     position: absolute; inset: 0; perspective: 380px; overflow: hidden;
     display: flex; justify-content: center; opacity: 0;
-    animation: show 0s 4.5s forwards;
   }
+  #intro.go .crawl-wrap { animation: show 0s 4.5s forwards; }
+  #intro.go .crawl { animation: crawl 38s 4.5s linear forwards; }
   @keyframes show { to { opacity: 1; } }
   .crawl {
     position: absolute; top: 100%; width: min(90vw, 640px);
     color: var(--gold); text-align: justify; font-size: clamp(20px, 4vw, 34px);
     font-weight: 600; line-height: 1.5;
     transform-origin: 50% 100%; transform: rotateX(25deg);
-    animation: crawl 38s 4.5s linear forwards;
   }
   .crawl h2 { text-align: center; font-family: Orbitron, sans-serif; margin-bottom: 0.4em; }
   .crawl .ep { text-align: center; font-size: 0.7em; letter-spacing: 0.2em; }
@@ -226,6 +243,14 @@
 <canvas id="stars"></canvas>
 
 <div id="intro">
+  <div id="gate">
+    <h2>EINGEHENDE ÜBERTRAGUNG</h2>
+    <p>Eine wichtige Nachricht aus einer weit, weit entfernten Galaxis wartet auf dich.</p>
+    <div class="btns">
+      <button id="goSound">▶ Mit Ton starten</button>
+      <button id="goQuiet" class="quiet">Ohne Ton</button>
+    </div>
+  </div>
   <div class="galaxy">Vor gar nicht langer Zeit, auf einer Baustelle<br>weit, weit weg von zu Hause…</div>
   <div class="crawl-wrap">
     <div class="crawl">
@@ -369,9 +394,25 @@
 
   // Intro
   const intro = document.getElementById("intro");
-  function endIntro() { intro.classList.add("fade"); setTimeout(() => intro.remove(), 1300); }
+  let introDone = false;
+  function endIntro() {
+    if (introDone) return;
+    introDone = true;
+    intro.classList.add("fade"); setTimeout(() => intro.remove(), 1300);
+    stopFanfare();
+    if (soundOn) setTimeout(sndIgnite, 600);
+  }
+  function startIntro(withSound) {
+    soundOn = withSound;
+    try { localStorage.setItem("ton", soundOn ? "an" : "aus"); } catch (e) {}
+    renderSoundBtn();
+    intro.classList.add("go");
+    if (soundOn) playFanfare();
+    setTimeout(endIntro, 34000);
+  }
+  document.getElementById("goSound").onclick = () => startIntro(true);
+  document.getElementById("goQuiet").onclick = () => startIntro(false);
   document.getElementById("skip").onclick = endIntro;
-  setTimeout(endIntro, 30000);
 
   // Sprüche
   const qEl = document.getElementById("quote");
@@ -466,10 +507,148 @@
   }
   addEventListener("resize", resize); resize();
   for (let i = 0; i < 500; i++) stars.push({ x: (Math.random() - 0.5) * 2, y: (Math.random() - 0.5) * 2, z: Math.random() });
+  // Hintergrund: Nebel, ferne Sterne, Planet (wird nur bei Größen-/Seitenwechsel neu gemalt)
+  const D = devicePixelRatio || 1;
+  const bg = document.createElement("canvas"), bgx = bg.getContext("2d");
+  let bgSide = null;
+  function drawBackdrop() {
+    bg.width = W; bg.height = H; bgSide = side;
+    const m = Math.min(W, H), sith = side === "sith";
+    bgx.fillStyle = "#000"; bgx.fillRect(0, 0, W, H);
+    const neb = sith
+      ? [[0.15, 0.25, "rgba(160,20,30,0.24)"], [0.8, 0.12, "rgba(120,10,60,0.2)"], [0.45, 0.8, "rgba(130,35,10,0.16)"]]
+      : [[0.15, 0.25, "rgba(70,45,160,0.24)"], [0.8, 0.12, "rgba(20,95,170,0.2)"], [0.45, 0.8, "rgba(120,35,150,0.16)"]];
+    for (const [x, y, col] of neb) {
+      const g = bgx.createRadialGradient(x * W, y * H, 0, x * W, y * H, m * 0.65);
+      g.addColorStop(0, col); g.addColorStop(1, "rgba(0,0,0,0)");
+      bgx.fillStyle = g; bgx.fillRect(0, 0, W, H);
+    }
+    for (let i = 0; i < 320; i++) {
+      bgx.fillStyle = `rgba(255,255,255,${(Math.random() * 0.7).toFixed(2)})`;
+      const s = D * (Math.random() < 0.9 ? 1 : 2);
+      bgx.fillRect(Math.random() * W, Math.random() * H, s, s);
+    }
+    // Planet unten rechts
+    const pr = m * 0.34, px = W * 0.9, py = H * 1.0;
+    const glow = bgx.createRadialGradient(px, py, pr * 0.95, px, py, pr * 1.4);
+    glow.addColorStop(0, sith ? "rgba(255,80,40,0.4)" : "rgba(90,170,255,0.4)"); glow.addColorStop(1, "rgba(0,0,0,0)");
+    bgx.fillStyle = glow; bgx.beginPath(); bgx.arc(px, py, pr * 1.4, 0, 7); bgx.fill();
+    const body = bgx.createRadialGradient(px - pr * 0.45, py - pr * 0.55, pr * 0.05, px, py, pr);
+    if (sith) { body.addColorStop(0, "#ff8a4a"); body.addColorStop(0.45, "#8a1c10"); body.addColorStop(1, "#140202"); }
+    else { body.addColorStop(0, "#9ad8ff"); body.addColorStop(0.45, "#2a6496"); body.addColorStop(1, "#020a18"); }
+    bgx.fillStyle = body; bgx.beginPath(); bgx.arc(px, py, pr, 0, 7); bgx.fill();
+    bgx.save(); bgx.beginPath(); bgx.arc(px, py, pr, 0, 7); bgx.clip();
+    for (let i = 0; i < 6; i++) {
+      bgx.strokeStyle = sith ? "rgba(255,170,60,0.12)" : "rgba(255,255,255,0.08)";
+      bgx.lineWidth = pr * (0.03 + Math.random() * 0.05);
+      bgx.beginPath(); bgx.ellipse(px, py - pr * (0.2 + i * 0.13), pr * 1.2, pr * 0.12, -0.15, 0, 7); bgx.stroke();
+    }
+    bgx.restore();
+    // kleiner Mond
+    const mx = px - pr * 1.6, my = py - pr * 1.25, mr = pr * 0.11;
+    const mg = bgx.createRadialGradient(mx - mr * 0.4, my - mr * 0.4, mr * 0.1, mx, my, mr);
+    mg.addColorStop(0, "#d8dbe2"); mg.addColorStop(1, "#2a2d35");
+    bgx.fillStyle = mg; bgx.beginPath(); bgx.arc(mx, my, mr, 0, 7); bgx.fill();
+  }
+
+  // Schiffe, Laser und Sternschnuppen
+  const ships = [], lasers = [], meteors = [];
+  let nextFleet = 90, nextCruiser = 400, fc = 0;
+  const shipScale = () => Math.max(0.6, Math.min(1.2, W / D / 1000)) * D;
+  function spawnFleet() {
+    const dir = Math.random() < 0.5 ? 1 : -1, u = shipScale();
+    const y = H * (0.1 + Math.random() * 0.75), sp = (1.8 + Math.random() * 1.8) * u * dir;
+    const x0 = dir > 0 ? -60 * u : W + 60 * u, n = 2 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < n; i++)
+      ships.push({ k: "f", team: 0, x: x0 - dir * i * 42 * u, y: y + (i % 2 ? 1 : -1) * i * 14 * u, vx: sp, vy: (Math.random() - 0.5) * 0.25 * u });
+    if (Math.random() < 0.75)
+      for (let i = 0; i < 2; i++)
+        ships.push({ k: "f", team: 1, x: x0 - dir * (230 + i * 46) * u, y: y + (i ? 18 : -12) * u, vx: sp, vy: 0 });
+  }
+  function spawnCruiser() {
+    const dir = Math.random() < 0.5 ? 1 : -1, u = shipScale();
+    ships.push({ k: "c", x: dir > 0 ? -340 * u : W + 340 * u, y: H * (0.1 + Math.random() * 0.22), vx: 0.32 * u * dir, vy: 0 });
+  }
+  function drawFighter(sh, u) {
+    ctx.save(); ctx.translate(sh.x, sh.y); ctx.scale(Math.sign(sh.vx) * u, u);
+    ctx.shadowBlur = 12; ctx.shadowColor = sh.team ? "#9fd0ff" : "#ffb070";
+    ctx.fillStyle = sh.team ? "#9fd0ff" : "#ffb070";
+    ctx.beginPath(); ctx.arc(-13, 0, 2.6 + Math.random(), 0, 7); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    if (sh.team === 0) {
+      ctx.fillStyle = "#c9ced8";
+      ctx.moveTo(16, 0); ctx.lineTo(-8, -3); ctx.lineTo(-10, -11); ctx.lineTo(-14, -11); ctx.lineTo(-12, -2);
+      ctx.lineTo(-12, 2); ctx.lineTo(-14, 11); ctx.lineTo(-10, 11); ctx.lineTo(-8, 3);
+    } else {
+      ctx.fillStyle = "#5b6170";
+      ctx.moveTo(14, 0); ctx.lineTo(-10, -8); ctx.lineTo(-6, 0); ctx.lineTo(-10, 8);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = sh.team ? "#c33" : "#e05a2b"; ctx.fillRect(-4, -1, 6, 2);
+    ctx.restore();
+  }
+  function drawCruiser(sh, u) {
+    ctx.save(); ctx.translate(sh.x, sh.y); ctx.scale(Math.sign(sh.vx) * u, u);
+    const hull = ctx.createLinearGradient(0, -20, 0, 20);
+    hull.addColorStop(0, "#9aa0ad"); hull.addColorStop(1, "#3b3f49");
+    ctx.fillStyle = hull;
+    ctx.beginPath();
+    ctx.moveTo(150, 0); ctx.lineTo(70, -9); ctx.lineTo(-120, -18); ctx.lineTo(-145, -14);
+    ctx.lineTo(-145, 14); ctx.lineTo(-120, 18); ctx.lineTo(70, 9); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#6d727e"; ctx.fillRect(-95, -32, 46, 15); ctx.fillRect(-84, -41, 22, 9);
+    ctx.shadowBlur = 16; ctx.shadowColor = "#7fd4ff"; ctx.fillStyle = "#bfe9ff";
+    ctx.beginPath(); ctx.arc(-147, -7, 4.5, 0, 7); ctx.arc(-147, 7, 4.5, 0, 7); ctx.fill();
+    ctx.shadowBlur = 0;
+    for (let i = 0; i < 9; i++) {
+      ctx.fillStyle = (fc + i * 13) % 90 < 60 ? "rgba(255,240,180,0.9)" : "rgba(255,240,180,0.2)";
+      ctx.fillRect(-110 + i * 22, -2, 3, 2);
+    }
+    ctx.fillStyle = fc % 60 < 30 ? "#ff3b3b" : "#550000"; ctx.fillRect(-82, -43, 3, 3);
+    ctx.restore();
+  }
+  function drawTraffic() {
+    fc++;
+    if (--nextFleet <= 0) { spawnFleet(); nextFleet = 420 + Math.random() * 600; }
+    if (--nextCruiser <= 0) { spawnCruiser(); nextCruiser = 2200 + Math.random() * 1800; }
+    if (Math.random() < 0.003) {
+      meteors.push({ x: Math.random() * W, y: Math.random() * H * 0.4, vx: (7 + Math.random() * 5) * D, vy: (3 + Math.random() * 2) * D, life: 45 });
+    }
+    const u = shipScale();
+    for (let i = ships.length - 1; i >= 0; i--) {
+      const sh = ships[i];
+      sh.x += sh.vx; sh.y += sh.vy;
+      if (sh.k === "f" && sh.team === 1 && Math.random() < 0.018)
+        lasers.push({ x: sh.x + Math.sign(sh.vx) * 14 * u, y: sh.y, vx: sh.vx + Math.sign(sh.vx) * 9 * D, life: 70, col: "#4dff6a" });
+      if (sh.k === "f" && sh.team === 0 && Math.random() < 0.004)
+        lasers.push({ x: sh.x + Math.sign(sh.vx) * 16 * u, y: sh.y, vx: sh.vx + Math.sign(sh.vx) * 9 * D, life: 70, col: "#ff4a3d" });
+      sh.k === "c" ? drawCruiser(sh, u) : drawFighter(sh, u);
+      if (sh.x < -500 * u || sh.x > W + 500 * u) ships.splice(i, 1);
+    }
+    ctx.lineCap = "round";
+    for (let i = lasers.length - 1; i >= 0; i--) {
+      const l = lasers[i]; l.x += l.vx;
+      ctx.shadowBlur = 10; ctx.shadowColor = l.col; ctx.strokeStyle = l.col; ctx.lineWidth = 2.2 * D;
+      ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(l.x - Math.sign(l.vx) * 16 * D, l.y); ctx.stroke();
+      if (--l.life <= 0) lasers.splice(i, 1);
+    }
+    ctx.shadowBlur = 0;
+    for (let i = meteors.length - 1; i >= 0; i--) {
+      const mt = meteors[i]; mt.x += mt.vx; mt.y += mt.vy;
+      const g = ctx.createLinearGradient(mt.x, mt.y, mt.x - mt.vx * 10, mt.y - mt.vy * 10);
+      g.addColorStop(0, `rgba(255,255,255,${mt.life / 45})`); g.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.strokeStyle = g; ctx.lineWidth = 1.6 * D;
+      ctx.beginPath(); ctx.moveTo(mt.x, mt.y); ctx.lineTo(mt.x - mt.vx * 10, mt.y - mt.vy * 10); ctx.stroke();
+      if (--mt.life <= 0) meteors.splice(i, 1);
+    }
+  }
+
   function frame() {
     const speed = 0.0015 + warp * 0.03;
-    ctx.fillStyle = warp > 0.05 ? "rgba(0,0,0,0.25)" : "#000";
-    ctx.fillRect(0, 0, W, H);
+    if (bgSide !== side || bg.width !== W || bg.height !== H) drawBackdrop();
+    ctx.globalAlpha = warp > 0.05 ? 0.3 : 1;
+    ctx.drawImage(bg, 0, 0);
+    ctx.globalAlpha = 1;
     const cx = W / 2, cy = H / 2, f = Math.min(W, H) * 0.5;
     for (const s of stars) {
       const pz = s.z;
@@ -484,6 +663,7 @@
       ctx.lineWidth = Math.max(1, b * 2.5 * devicePixelRatio);
       ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(sx, sy); ctx.stroke();
     }
+    drawTraffic();
     if (!warpForever) warp *= 0.97; else warp = Math.min(1, warp + 0.01);
     requestAnimationFrame(frame);
   }
@@ -635,6 +815,88 @@
     o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.3);
   }
 
+  // ===== Eigene Intro-Fanfare (selbst komponiert, Blechbläser-Synth) =====
+  let fanfareBus = null;
+  const N = { C3: 130.81, G3: 196.0, Ab3: 207.65, Bb3: 233.08, C4: 261.63, D4: 293.66, Eb4: 311.13, F4: 349.23,
+              G4: 392.0, Ab4: 415.3, Bb4: 466.16, C5: 523.25, D5: 587.33, Eb5: 622.25, F5: 698.46, G5: 783.99 };
+  function brass(bus, freq, t, dur, vol) {
+    const a = ac, g = a.createGain(), f = a.createBiquadFilter();
+    f.type = "lowpass"; f.Q.value = 2;
+    f.frequency.setValueAtTime(400, t);
+    f.frequency.linearRampToValueAtTime(freq * 6, t + 0.08);
+    f.frequency.exponentialRampToValueAtTime(freq * 3, t + Math.max(0.2, dur));
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.05);
+    g.gain.setValueAtTime(vol * 0.8, t + Math.max(0.06, dur - 0.08));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.25);
+    [-6, 0, 7].forEach(det => {
+      const o = a.createOscillator(); o.type = "sawtooth"; o.frequency.value = freq; o.detune.value = det;
+      o.connect(f); o.start(t); o.stop(t + dur + 0.3);
+    });
+    f.connect(g).connect(bus);
+  }
+  function timpani(bus, freq, t, vol) {
+    const a = ac, o = a.createOscillator(), g = a.createGain();
+    o.type = "sine"; o.frequency.setValueAtTime(freq * 1.5, t); o.frequency.exponentialRampToValueAtTime(freq, t + 0.08);
+    env(g, t, vol, 0.005, 1.2);
+    o.connect(g).connect(bus); o.start(t); o.stop(t + 1.3);
+  }
+  function padChord(bus, freqs, t, dur, vol) {
+    const a = ac, g = a.createGain(), f = a.createBiquadFilter();
+    f.type = "lowpass"; f.frequency.value = 900;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vol, t + 1.2);
+    g.gain.setValueAtTime(vol, t + dur - 1);
+    g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    freqs.forEach(fr => [-8, 8].forEach(det => {
+      const o = a.createOscillator(); o.type = "sawtooth"; o.frequency.value = fr; o.detune.value = det;
+      o.connect(f); o.start(t); o.stop(t + dur + 0.1);
+    }));
+    f.connect(g).connect(bus);
+  }
+  function playFanfare() {
+    const a = audio();
+    fanfareBus = a.createGain(); fanfareBus.gain.value = 0.9; fanfareBus.connect(a.destination);
+    const bus = fanfareBus, beat = 0.42;
+    let t = a.currentTime + 0.3;
+    // Teil 1: ruhiger Auftakt während "Vor gar nicht langer Zeit…"
+    padChord(bus, [N.C3, N.G3, N.Eb4], t, 4.3, 0.05);
+    t += 4.5;
+    // Teil 2: Fanfare, wenn der Lauftext startet
+    const melody = [
+      ["C4", .5], ["C4", .5], ["G4", 1.5], ["F4", .5], ["Eb4", .5], ["F4", .5], ["G4", 2],
+      ["Bb4", 1], ["Ab4", .5], ["G4", .5], ["F4", 1], ["Eb4", .5], ["F4", .5], ["C5", 3],
+      ["C5", .5], ["D5", .5], ["Eb5", 1.5], ["D5", .5], ["C5", .5], ["Bb4", .5], ["C5", 1], ["G4", 1],
+      ["Ab4", 1], ["Bb4", 1], ["G5", .75], ["F5", .25], ["Eb5", .5], ["D5", .5], ["C5", 4],
+    ];
+    const chords = [
+      [N.C3, N.G3, N.Eb4], [N.Ab3, N.C4, N.Eb4], [N.Bb3, N.D4, N.F4], [N.C3, N.G3, N.C4],
+      [N.Ab3, N.C4, N.Eb4], [N.Bb3, N.D4, N.F4], [N.G3, N.D4, N.G4], [N.C3, N.G3, N.Eb4],
+    ];
+    timpani(bus, 65, t, 0.6); timpani(bus, 65, t + beat * 0.5, 0.4);
+    let mt = t;
+    melody.forEach(([n, d]) => { brass(bus, N[n], mt, d * beat * 0.95, 0.09); mt += d * beat; });
+    const total = mt - t, chordLen = total / chords.length;
+    chords.forEach((c, i) => {
+      const ct = t + i * chordLen;
+      c.forEach(fr => brass(bus, fr, ct, chordLen * 0.97, 0.035));
+      timpani(bus, i % 2 ? 49 : 65, ct, 0.45);
+    });
+    // Schlussakkord in Dur
+    brass(bus, N.C4, mt, 2.5, 0.05); brass(bus, N.G4, mt, 2.5, 0.05); brass(bus, 329.63, mt, 2.5, 0.05); brass(bus, N.C5, mt, 2.5, 0.07);
+    timpani(bus, 65, mt, 0.7);
+    // Teil 3: ruhiger Klangteppich unter dem restlichen Lauftext
+    padChord(bus, [N.Ab3, N.C4, N.Eb4], mt + 2.6, 7, 0.04);
+    padChord(bus, [N.Bb3, N.D4, N.F4], mt + 9.4, 7, 0.04);
+  }
+  function stopFanfare() {
+    if (!fanfareBus || !ac) return;
+    const g = fanfareBus.gain, t = ac.currentTime;
+    g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0.0001, t + 1.2);
+    const bus = fanfareBus; fanfareBus = null;
+    setTimeout(() => bus.disconnect(), 1400);
+  }
+
   function renderSoundBtn() {
     soundBtn.classList.toggle("on", soundOn);
     soundBtn.textContent = soundOn ? "🔊 Ton an" : "🔇 Ton aus";
@@ -647,7 +909,7 @@
   };
   renderSoundBtn();
   // Browser erlauben Ton erst nach einer Interaktion: beim ersten Klick starten
-  addEventListener("pointerdown", () => { if (soundOn && !hum) sndIgnite(); }, { once: true });
+  addEventListener("pointerdown", () => { if (soundOn && !hum && introDone) sndIgnite(); });
 
   // Sounds an bestehende Knöpfe hängen
   $("next").addEventListener("click", () => side === "sith" ? (Math.random() < 0.5 ? sndBreath() : sndBlaster()) : sndBlaster());
