@@ -92,6 +92,9 @@
     text-align: center; font-size: 13px; color: var(--gold);
   }
   #ytbox.ad iframe { width: 320px; height: 180px; }
+  /* bei Werbung steht der Hinweis über dem Video */
+  #ytbox.ad { display: flex; flex-direction: column-reverse; gap: 8px; }
+  #ytbox.ad #ytcap { font-size: 14px; font-weight: 600; }
   #gate #waitAlt { display: none; margin-top: 4px; font-size: 12px; padding: 8px 16px; }
   #ytbox iframe { width: 200px; height: 113px; border: 0; border-radius: 6px; display: block; margin-bottom: 4px; }
   @keyframes galaxy { 0%{opacity:0} 15%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
