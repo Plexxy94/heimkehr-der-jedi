@@ -148,6 +148,78 @@
   @keyframes pulse { to { text-shadow: 0 0 40px var(--gold), 0 0 80px var(--gold); } }
 
   footer { position: relative; z-index: 1; text-align: center; color: #555; font-size: 12px; padding: 0 16px 20px; }
+
+  /* --- Ton-Knopf --- */
+  #sound {
+    position: fixed; top: 14px; left: 14px; z-index: 4;
+    background: rgba(0,0,0,0.6); border: 1px solid var(--muted); color: var(--muted);
+    border-radius: 22px; padding: 8px 14px; cursor: pointer;
+    font-family: Orbitron, sans-serif; font-size: 12px; letter-spacing: 0.08em;
+  }
+  #sound.on { color: var(--saber); border-color: var(--saber); box-shadow: 0 0 12px var(--saber); }
+
+  /* --- Easter Eggs --- */
+  .quote.rare {
+    border: 2px solid #ffd54a; border-radius: 14px; padding: 14px 18px;
+    box-shadow: 0 0 26px rgba(255,213,74,0.5); background: rgba(60,45,0,0.35);
+  }
+  .rare-tag {
+    display: block; font-style: normal; font-family: Orbitron, sans-serif; font-size: 0.55em;
+    color: #ffd54a; letter-spacing: 0.2em; margin-bottom: 8px;
+  }
+  .hilt { cursor: pointer; }
+
+  .shake { animation: shake 0.08s 8 linear; }
+  @keyframes shake {
+    0% { transform: translate(0,0); } 25% { transform: translate(-6px,3px); }
+    50% { transform: translate(5px,-4px); } 75% { transform: translate(-3px,-2px); } 100% { transform: translate(0,0); }
+  }
+  .clash .blade { animation: clash 0.12s 10 steps(1); }
+  @keyframes clash {
+    0% { box-shadow: 0 0 6px #fff, 0 0 20px #4fc3ff, 0 0 44px #4fc3ff; }
+    50% { box-shadow: 0 0 6px #fff, 0 0 20px #ff1a1a, 0 0 44px #ff1a1a; }
+  }
+  .spark {
+    position: fixed; width: 4px; height: 4px; border-radius: 50%; z-index: 7; pointer-events: none;
+    background: #fff; box-shadow: 0 0 8px #ffd54a, 0 0 14px #ff8a00;
+  }
+
+  #alarm {
+    position: fixed; inset: 0; z-index: 8; display: none;
+    align-items: center; justify-content: center; flex-direction: column; gap: 14px;
+    padding: 16px; text-align: center; pointer-events: none;
+    animation: alarm 0.5s infinite alternate;
+  }
+  #alarm.show { display: flex; }
+  #alarm b { font-family: Orbitron, sans-serif; font-size: clamp(30px, 8vw, 72px); color: #fff; text-shadow: 0 0 20px #f00; }
+  #alarm span { font-size: clamp(16px, 3.5vw, 26px); color: #fff; }
+  @keyframes alarm { from { background: rgba(255,0,0,0.15); } to { background: rgba(255,0,0,0.5); } }
+
+  #droid {
+    position: fixed; bottom: 30px; left: -140px; z-index: 6; pointer-events: none;
+    display: flex; align-items: flex-end; gap: 8px;
+  }
+  #droid.go { animation: roll 6s linear forwards; }
+  @keyframes roll { to { left: 110vw; } }
+  #droid svg { animation: wobble 0.35s infinite alternate; }
+  @keyframes wobble { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
+  #droid .bubble {
+    background: #fff; color: #000; border-radius: 12px; padding: 6px 10px; font-size: 14px;
+    white-space: nowrap; margin-bottom: 50px;
+  }
+  .countdown { cursor: default; user-select: none; }
+
+  #final {
+    position: fixed; inset: 0; z-index: 7; display: none;
+    align-items: center; justify-content: center; background: rgba(0,0,0,0.55); pointer-events: none;
+  }
+  #final.show { display: flex; }
+  #final div {
+    font-family: Orbitron, sans-serif; font-weight: 800; font-size: clamp(120px, 40vw, 320px);
+    color: #fff; text-shadow: 0 0 30px var(--saber), 0 0 80px var(--saber);
+  }
+  #final div.pop { animation: pop 0.9s ease-out; }
+  @keyframes pop { from { transform: scale(1.8); opacity: 0; } 30% { opacity: 1; } to { transform: scale(1); } }
 </style>
 </head>
 <body>
@@ -193,7 +265,27 @@
   <button class="force" id="next">Nutze die Macht ✦</button>
 </main>
 
-<footer>Abflug: Freitag, 6. November 2026, 12:00 Uhr · Inoffizielle Fan-Spaßseite</footer>
+<footer>Abflug: Freitag, 6. November 2026, 12:00 Uhr · Inoffizielle Fan-Spaßseite<br>Psst… es gibt hier mehr zu entdecken, als man sieht.</footer>
+
+<button id="sound">🔇 Ton aus</button>
+
+<div id="alarm"><b>⚠ ORDER 66 ⚠</b><span>Alle Klone sofort in den Feierabend!</span></div>
+
+<div id="droid">
+  <svg width="56" height="70" viewBox="0 0 56 70" aria-hidden="true">
+    <rect x="4" y="44" width="8" height="24" rx="3" fill="#c8ccd6"/>
+    <rect x="44" y="44" width="8" height="24" rx="3" fill="#c8ccd6"/>
+    <rect x="10" y="26" width="36" height="38" rx="6" fill="#eef0f5"/>
+    <rect x="16" y="36" width="24" height="5" rx="2" fill="#e05a2b"/>
+    <rect x="16" y="46" width="10" height="10" rx="2" fill="#6b7280"/>
+    <path d="M10 28 a18 18 0 0 1 36 0 z" fill="#b9bfcc"/>
+    <circle cx="28" cy="18" r="5" fill="#111"/><circle cx="29.5" cy="16.5" r="1.6" fill="#7fd4ff"/>
+    <rect x="36" y="20" width="4" height="4" fill="#e05a2b"/>
+  </svg>
+  <div class="bubble" id="droidTxt">Biep!</div>
+</div>
+
+<div id="final"><div id="finalNum">10</div></div>
 
 <script>
   // Abreise: Freitag 06.11.2026, 12:00 deutscher Zeit (MEZ)
@@ -287,8 +379,12 @@
   function showQuote() {
     qEl.style.opacity = 0;
     setTimeout(() => {
-      const [t, a] = quotes[qi % quotes.length];
-      qEl.innerHTML = "„" + t + "“<small>— " + a + "</small>";
+      // Easter Egg: ca. 1 von 50 Sprüchen ist ein seltener
+      const rare = Math.random() < 0.02;
+      const [t, a] = rare ? RARE[side] : quotes[qi % quotes.length];
+      qEl.innerHTML = (rare ? "<span class=\"rare-tag\">✦ Legendärer Spruch ✦</span>" : "") +
+        "„" + t + "“<small>— " + a + "</small>";
+      qEl.classList.toggle("rare", rare);
       qEl.style.opacity = 1;
       qi = (qi + 1) % quotes.length;
     }, 400);
@@ -392,6 +488,255 @@
     requestAnimationFrame(frame);
   }
   frame();
+
+  // ===== Easter Eggs: seltene Sprüche =====
+  const RARE = {
+    jedi: ["Du hast den legendären Kyber-Kristall gefunden. Er sagt: Bald ist Freitag.", "Ein sehr, sehr alter Meister"],
+    sith: ["Psst… selbst der Imperator zählt heimlich die Sekunden bis Freitag.", "Geheimakte der Sith"],
+  };
+
+  // ===== Sounds (komplett im Browser erzeugt) =====
+  let ac = null, soundOn = false, hum = null;
+  try { soundOn = localStorage.getItem("ton") === "an"; } catch (e) {}
+  const soundBtn = $("sound");
+
+  function audio() {
+    if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+    if (ac.state === "suspended") ac.resume();
+    return ac;
+  }
+  function noise(dur) {
+    const a = audio(), buf = a.createBuffer(1, a.sampleRate * dur, a.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const src = a.createBufferSource(); src.buffer = buf; return src;
+  }
+  function env(g, t, peak, attack, release) {
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + attack + release);
+  }
+
+  // Lichtschwert zünden
+  function sndIgnite() {
+    if (!soundOn) return;
+    const a = audio(), t = a.currentTime;
+    const o = a.createOscillator(), f = a.createBiquadFilter(), g = a.createGain();
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(side === "sith" ? 60 : 80, t);
+    o.frequency.exponentialRampToValueAtTime(side === "sith" ? 140 : 180, t + 0.35);
+    f.type = "lowpass"; f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(2400, t + 0.2);
+    f.frequency.exponentialRampToValueAtTime(500, t + 0.8);
+    env(g, t, 0.35, 0.05, 0.9);
+    o.connect(f).connect(g).connect(a.destination); o.start(t); o.stop(t + 1);
+    const n = noise(0.5), nf = a.createBiquadFilter(), ng = a.createGain();
+    nf.type = "bandpass"; nf.frequency.value = 1500;
+    env(ng, t, 0.25, 0.02, 0.4);
+    n.connect(nf).connect(ng).connect(a.destination); n.start(t);
+    startHum();
+  }
+  // Dauerhaftes Summen
+  function startHum() {
+    stopHum();
+    if (!soundOn) return;
+    const a = audio(), g = a.createGain(), f = a.createBiquadFilter();
+    const base = side === "sith" ? 72 : 90;
+    const o1 = a.createOscillator(), o2 = a.createOscillator(), lfo = a.createOscillator(), lg = a.createGain();
+    o1.type = o2.type = "sawtooth"; o1.frequency.value = base; o2.frequency.value = base + 1.5;
+    f.type = "lowpass"; f.frequency.value = 320;
+    lfo.frequency.value = 0.4; lg.gain.value = 0.012; lfo.connect(lg).connect(g.gain);
+    g.gain.value = 0.035;
+    o1.connect(f); o2.connect(f); f.connect(g).connect(a.destination);
+    o1.start(); o2.start(); lfo.start();
+    hum = { stop() { try { o1.stop(); o2.stop(); lfo.stop(); } catch (e) {} g.disconnect(); } };
+  }
+  function stopHum() { if (hum) { hum.stop(); hum = null; } }
+
+  // Blaster
+  function sndBlaster() {
+    if (!soundOn) return;
+    const a = audio();
+    [0, 0.18].forEach(delay => {
+      const t = a.currentTime + delay, o = a.createOscillator(), g = a.createGain();
+      o.type = "square";
+      o.frequency.setValueAtTime(2200, t); o.frequency.exponentialRampToValueAtTime(180, t + 0.22);
+      env(g, t, 0.12, 0.005, 0.22);
+      o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.3);
+    });
+  }
+  // Schweres Atmen (Sith)
+  function sndBreath() {
+    if (!soundOn) return;
+    const a = audio(), t = a.currentTime;
+    [[0, 0.9, 900], [1.15, 1.2, 600]].forEach(([d, len, fr]) => {
+      const n = noise(len + 0.1), f = a.createBiquadFilter(), g = a.createGain();
+      f.type = "bandpass"; f.frequency.value = fr; f.Q.value = 1.2;
+      g.gain.setValueAtTime(0.0001, t + d);
+      g.gain.exponentialRampToValueAtTime(0.5, t + d + len * 0.4);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d + len);
+      n.connect(f).connect(g).connect(a.destination); n.start(t + d);
+    });
+  }
+  // Hyperraum-Sprung
+  function sndHyper() {
+    if (!soundOn) return;
+    const a = audio(), t = a.currentTime;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = "sawtooth"; o.frequency.setValueAtTime(60, t); o.frequency.exponentialRampToValueAtTime(1600, t + 2.2);
+    env(g, t, 0.15, 1.6, 1.2);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + 3);
+    const n = noise(3), f = a.createBiquadFilter(), ng = a.createGain();
+    f.type = "lowpass"; f.frequency.setValueAtTime(200, t); f.frequency.exponentialRampToValueAtTime(6000, t + 2);
+    env(ng, t, 0.4, 1.8, 1.1);
+    n.connect(f).connect(ng).connect(a.destination); n.start(t);
+  }
+  // Droiden-Piepsen
+  function sndBeeps(count) {
+    if (!soundOn) return;
+    const a = audio();
+    for (let i = 0; i < count; i++) {
+      const t = a.currentTime + i * 0.12, o = a.createOscillator(), g = a.createGain();
+      o.type = "sine";
+      const f1 = 800 + Math.random() * 1800;
+      o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(f1 * (Math.random() < 0.5 ? 0.6 : 1.5), t + 0.1);
+      env(g, t, 0.15, 0.01, 0.1);
+      o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.13);
+    }
+  }
+  // Alarm
+  function sndAlarm() {
+    if (!soundOn) return;
+    const a = audio(), t = a.currentTime, o = a.createOscillator(), g = a.createGain();
+    o.type = "square";
+    for (let i = 0; i < 8; i++) o.frequency.setValueAtTime(i % 2 ? 660 : 880, t + i * 0.45);
+    g.gain.setValueAtTime(0.08, t); g.gain.setValueAtTime(0.0001, t + 3.6);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + 3.7);
+  }
+  // Schwerter prallen aufeinander
+  function sndClash() {
+    if (!soundOn) return;
+    const a = audio();
+    for (let i = 0; i < 4; i++) {
+      const t = a.currentTime + i * 0.25, n = noise(0.3), f = a.createBiquadFilter(), g = a.createGain();
+      f.type = "highpass"; f.frequency.value = 1200;
+      env(g, t, 0.6, 0.005, 0.25);
+      n.connect(f).connect(g).connect(a.destination); n.start(t);
+      const o = a.createOscillator(), og = a.createGain();
+      o.type = "sawtooth"; o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(60, t + 0.25);
+      env(og, t, 0.25, 0.005, 0.25);
+      o.connect(og).connect(a.destination); o.start(t); o.stop(t + 0.3);
+    }
+  }
+  // Kurzer Piep (letzte 10 Sekunden)
+  function sndTick(high) {
+    if (!soundOn) return;
+    const a = audio(), t = a.currentTime, o = a.createOscillator(), g = a.createGain();
+    o.type = "sine"; o.frequency.value = high ? 1320 : 880;
+    env(g, t, 0.25, 0.01, 0.25);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.3);
+  }
+
+  function renderSoundBtn() {
+    soundBtn.classList.toggle("on", soundOn);
+    soundBtn.textContent = soundOn ? "🔊 Ton an" : "🔇 Ton aus";
+  }
+  soundBtn.onclick = () => {
+    soundOn = !soundOn;
+    try { localStorage.setItem("ton", soundOn ? "an" : "aus"); } catch (e) {}
+    renderSoundBtn();
+    if (soundOn) sndIgnite(); else stopHum();
+  };
+  renderSoundBtn();
+  // Browser erlauben Ton erst nach einer Interaktion: beim ersten Klick starten
+  addEventListener("pointerdown", () => { if (soundOn && !hum) sndIgnite(); }, { once: true });
+
+  // Sounds an bestehende Knöpfe hängen
+  $("next").addEventListener("click", () => side === "sith" ? (Math.random() < 0.5 ? sndBreath() : sndBlaster()) : sndBlaster());
+  document.querySelectorAll("#side button").forEach(b => b.addEventListener("click", sndIgnite));
+  // Sith-Atmen ab und zu von selbst
+  setInterval(() => { if (side === "sith" && soundOn && Math.random() < 0.35) sndBreath(); }, 20000);
+
+  // ===== Easter Egg: Geheimcodes tippen =====
+  let typed = "";
+  addEventListener("keydown", e => {
+    if (e.key.length !== 1) return;
+    typed = (typed + e.key.toLowerCase()).slice(-12);
+    const t = typed.replace(/\s/g, "");
+    if (t.endsWith("sith") && side !== "sith") { typed = ""; setSide("sith", true); sndIgnite(); }
+    else if (t.endsWith("jedi") && side !== "jedi") { typed = ""; setSide("jedi", true); sndIgnite(); }
+    else if (t.endsWith("order66")) { typed = ""; order66(); }
+  });
+
+  // ===== Easter Egg: Order 66 =====
+  function order66() {
+    const al = $("alarm");
+    al.classList.add("show"); sndAlarm();
+    document.body.classList.add("shake");
+    setTimeout(() => document.body.classList.remove("shake"), 700);
+    setTimeout(() => al.classList.remove("show"), 3800);
+  }
+
+  // ===== Easter Egg: Lichtschwert-Griff 5x anklicken =====
+  let hiltClicks = [];
+  document.querySelector(".hilt").addEventListener("click", () => {
+    const now = Date.now();
+    hiltClicks = hiltClicks.filter(t => now - t < 2500); hiltClicks.push(now);
+    if (hiltClicks.length >= 5) { hiltClicks = []; duel(); }
+  });
+  function duel() {
+    const saber = document.querySelector(".saber");
+    saber.classList.add("clash"); document.body.classList.add("shake"); sndClash();
+    const r = $("blade").getBoundingClientRect();
+    for (let i = 0; i < 40; i++) {
+      const sp = document.createElement("div"); sp.className = "spark";
+      const x = r.left + Math.random() * Math.max(40, r.width), y = r.top + r.height / 2;
+      sp.style.left = x + "px"; sp.style.top = y + "px";
+      document.body.appendChild(sp);
+      const ang = Math.random() * Math.PI * 2, dist = 40 + Math.random() * 140;
+      sp.animate([
+        { transform: "translate(0,0)", opacity: 1 },
+        { transform: `translate(${Math.cos(ang) * dist}px, ${Math.sin(ang) * dist + 60}px)`, opacity: 0 }
+      ], { duration: 700 + Math.random() * 600, easing: "cubic-bezier(.2,.7,.4,1)", delay: Math.random() * 900 })
+        .onfinish = () => sp.remove();
+    }
+    setTimeout(() => { saber.classList.remove("clash"); document.body.classList.remove("shake"); }, 1300);
+    $("pct").textContent = "⚔ Duell! Unentschieden, beide wollen nach Hause.";
+  }
+
+  // ===== Easter Egg: Doppelklick auf den Countdown → Droide =====
+  $("cd").addEventListener("dblclick", () => {
+    const dr = $("droid");
+    if (dr.classList.contains("go")) return;
+    const left = Math.max(0, TARGET - Date.now());
+    const lines = [
+      "Biep bup! Noch " + Math.floor(left / 1000).toLocaleString("de-DE") + " Sekunden!",
+      "Bi-dü-dü! Koffer schon gepackt?",
+      "Wüüüp! Ich hab den Heimweg berechnet!",
+      "Bip bip… *rollt ungeduldig*",
+    ];
+    $("droidTxt").textContent = lines[Math.floor(Math.random() * lines.length)];
+    dr.classList.add("go"); sndBeeps(7);
+    setTimeout(() => sndBeeps(5), 2500);
+    setTimeout(() => dr.classList.remove("go"), 6100);
+  });
+
+  // ===== Easter Egg: die letzten 10 Sekunden =====
+  let lastSec = null, hyperDone = false;
+  setInterval(() => {
+    const left = TARGET - Date.now();
+    const fin = $("final");
+    if (left > 0 && left <= 10000) {
+      const sec = Math.ceil(left / 1000);
+      if (sec !== lastSec) {
+        lastSec = sec;
+        const n = $("finalNum");
+        n.textContent = sec; n.classList.remove("pop"); void n.offsetWidth; n.classList.add("pop");
+        fin.classList.add("show"); sndTick(sec <= 3);
+      }
+    } else {
+      fin.classList.remove("show");
+      if (left <= 0 && lastSec !== null && !hyperDone) { hyperDone = true; sndHyper(); }
+    }
+  }, 200);
 </script>
 </body>
 </html>
