@@ -65,6 +65,7 @@
   #gate {
     position: absolute; inset: 0; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 22px; padding: 16px; text-align: center;
+    z-index: 3;
   }
   #gate h2 { font-family: Orbitron, sans-serif; color: var(--gold); font-size: clamp(22px, 5vw, 40px); letter-spacing: 0.08em; }
   #gate p { color: var(--muted); max-width: 420px; }
@@ -78,7 +79,7 @@
   @keyframes galaxy { 0%{opacity:0} 15%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
   .crawl-wrap {
     position: absolute; inset: 0; perspective: 380px; overflow: hidden;
-    display: flex; justify-content: center; opacity: 0;
+    display: flex; justify-content: center; opacity: 0; pointer-events: none;
   }
   #intro.go .crawl-wrap { animation: show 0s 4.5s forwards; }
   #intro.go .crawl { animation: crawl 38s 4.5s linear forwards; }
