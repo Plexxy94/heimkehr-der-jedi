@@ -76,10 +76,10 @@
   }
   #gate button:first-child { background: var(--gold); color: #000; }
   #gate button.quiet { border-color: var(--muted); color: var(--muted); }
-  .ownmusic { color: var(--muted); font-size: 14px; cursor: pointer; text-decoration: underline dotted; }
-  .ownmusic:hover { color: var(--gold); }
-  #ownName { color: var(--gold); font-size: 13px; min-height: 1em; }
-  #musicState { color: var(--muted); font-size: 12px; }
+  #gate .waitmsg { display: none; color: var(--blue); font-family: Orbitron, sans-serif; letter-spacing: 0.08em; animation: blink 1s infinite alternate; }
+  #gate.wait .waitmsg { display: block; }
+  #gate.wait .btns, #gate.wait p { display: none; }
+  @keyframes blink { from { opacity: 1; } to { opacity: 0.35; } }
   /* Kleiner Player unten links (nur sichtbar während das Original läuft) */
   #ytbox {
     position: absolute; left: 16px; bottom: 16px; z-index: 6; width: 200px;
@@ -263,9 +263,7 @@
       <button id="goSound">▶ Mit Ton starten</button>
       <button id="goQuiet" class="quiet">Ohne Ton</button>
     </div>
-    <label class="ownmusic">🎵 Eigene Musik wählen<input type="file" id="ownFile" accept="audio/*" hidden></label>
-    <div id="ownName"></div>
-    <div id="musicState">♪ Original-Musik lädt…</div>
+    <div class="waitmsg">⏳ Warte … Übertragung wird initiiert</div>
   </div>
   <div class="galaxy">Vor gar nicht langer Zeit, auf einer Baustelle<br>weit, weit weg von zu Hause…</div>
   <div class="crawl-wrap">
@@ -423,8 +421,25 @@
     soundOn = withSound;
     try { localStorage.setItem("ton", soundOn ? "an" : "aus"); } catch (e) {}
     renderSoundBtn();
+    if (!soundOn) return beginIntro(null);
+    audio(); // Ton im Klick freischalten
+    $("gate").classList.add("wait");
+    prepareMusic(ok => beginIntro(ok ? "yt" : "fanfare"));
+  }
+  function beginIntro(mode) {
+    if (introDone) { try { yt && yt.stopVideo(); } catch (e) {} return; }
     intro.classList.add("go");
-    if (soundOn) startIntroMusic();
+    if (mode === "yt") {
+      introMusic = "yt";
+      setTimeout(() => {
+        if (introMusic !== "yt") return;
+        yt.seekTo(0, true); yt.setVolume(100);
+        $("ytbox").classList.add("show");
+      }, HIT * 1000);
+    } else if (mode === "fanfare") {
+      introMusic = "fanfare";
+      playFanfare();
+    }
     setTimeout(endIntro, 34000);
   }
   document.getElementById("goSound").onclick = () => startIntro(true);
@@ -985,97 +1000,53 @@
     setTimeout(() => bus.disconnect(), 1400);
   }
 
-  // ===== Intro-Musik: eigene Datei > Original von YouTube > eigene Fanfare =====
+  // ===== Intro-Musik: Original von YouTube, eigene Fanfare als Rückfall =====
   const YT_ID = "Q0cz6i9K2Ao"; // "Main Title" · John Williams · London Symphony Orchestra (offiziell)
   const HIT = 4.25;            // Sekunden bis der Titel erscheint
-  let yt = null, ytReady = false, ytFailed = false, ownAudio = null, ownGain = null, introMusic = null;
-  function musicState(txt) { const el = $("musicState"); if (el) el.textContent = txt; }
-  setTimeout(() => { if (!ytReady && !ytFailed) musicState("⚠ YouTube lädt nicht (Werbeblocker/Tracking-Schutz?) – es kommt die eigene Fanfare"); }, 8000);
-  // Grund des letzten Rückfalls anzeigen, damit man sieht, was schiefging
-  try { const last = localStorage.getItem("musikFehler"); if (last) musicState("Letztes Mal: " + last); } catch (e) {}
+  const WAIT_MAX = 12000;      // so lange wird höchstens auf YouTube gewartet
+  let yt = null, ytReady = false, ytFailed = false, introMusic = null;
 
   window.onYouTubeIframeAPIReady = () => {
     yt = new YT.Player("yt", {
       videoId: YT_ID,
       playerVars: { controls: 0, disablekb: 1, playsinline: 1, rel: 0, modestbranding: 1 },
       events: {
-        onReady: () => { ytReady = true; musicState("♪ Original-Musik bereit"); },
-        onError: e => { ytFailed = true; musicState("⚠ YouTube-Fehler " + e.data + " – es kommt die eigene Fanfare"); },
+        onReady: () => { ytReady = true; },
+        onError: e => { ytFailed = true; console.warn("YouTube-Fehler", e.data); },
       },
     });
   };
   (() => {
     const s = document.createElement("script");
     s.src = "https://www.youtube.com/iframe_api";
-    s.onerror = () => { ytFailed = true; musicState("⚠ YouTube wird blockiert (Werbeblocker/Tracking-Schutz?) – es kommt die eigene Fanfare"); };
+    s.onerror = () => { ytFailed = true; };
     document.head.appendChild(s);
   })();
 
-  // Eigene Musikdatei (bleibt auf dem Gerät, wird nirgends hochgeladen)
-  $("ownFile").addEventListener("change", e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (ownAudio) URL.revokeObjectURL(ownAudio.src);
-    ownAudio = new Audio(URL.createObjectURL(file));
-    ownAudio.preload = "auto";
-    ownGain = null;
-    $("ownName").textContent = "✓ " + file.name;
-  });
-
-  function startIntroMusic() {
-    const a = audio();
-    // 1) Eigene Datei: sofort leise starten (Klick erlaubt Ton), beim Titel von vorne laut
-    if (ownAudio) {
-      if (!ownGain) { ownGain = a.createGain(); a.createMediaElementSource(ownAudio).connect(ownGain).connect(a.destination); }
-      ownGain.gain.value = 0;
-      ownAudio.currentTime = 0;
-      ownAudio.play().catch(() => {});
-      setTimeout(() => { ownAudio.currentTime = 0; ownGain.gain.setValueAtTime(1, ac.currentTime); }, HIT * 1000);
-      introMusic = "own";
-      return;
-    }
-    // 2) Original von YouTube: leise vorstarten, beim Titel von vorne laut.
-    //    Ist der Player beim Klick noch nicht fertig, wird bis kurz vor dem Titel gewartet.
-    const clickAt = Date.now();
-    introMusic = "yt";
-    const fallback = why => {
-      if (introMusic !== "yt") return;
-      try { localStorage.setItem("musikFehler", why); } catch (e) {}
-      console.warn("Intro-Musik: Fanfare statt Original –", why);
-      try { yt && yt.stopVideo(); } catch (e) {}
-      introMusic = "fanfare";
-      playFanfare(Math.max(0.3, HIT - (Date.now() - clickAt) / 1000));
+  // Startet das Video leise und meldet erst zurück, wenn es wirklich läuft (oder nicht klappt)
+  function prepareMusic(done) {
+    const t0 = Date.now();
+    let finished = false, started = false;
+    const finish = ok => {
+      if (finished) return;
+      finished = true;
+      if (!ok) { try { yt && yt.stopVideo(); } catch (e) {} }
+      done(ok);
     };
-    const tryStart = () => {
-      if (introMusic !== "yt") return;
-      if (ytFailed) return fallback("YouTube-Player meldet Fehler/blockiert");
-      if (!(yt && ytReady)) {
-        if (Date.now() - clickAt > (HIT - 0.8) * 1000) return fallback("YouTube-Player war nicht rechtzeitig geladen");
-        return setTimeout(tryStart, 150);
+    const step = () => {
+      if (finished) return;
+      if (ytFailed || Date.now() - t0 > WAIT_MAX) return finish(false);
+      if (yt && ytReady) {
+        if (!started) { started = true; yt.setVolume(0); yt.seekTo(0, true); yt.playVideo(); }
+        if (yt.getPlayerState() === 1) return finish(true);
       }
-      yt.setVolume(0); yt.seekTo(0, true); yt.playVideo();
-      // läuft das Video nach kurzer Zeit nicht (z. B. am Handy blockiert) → eigene Fanfare
-      setTimeout(() => {
-        if (introMusic !== "yt") return;
-        const st = yt.getPlayerState();
-        if (ytFailed || (st !== 1 && st !== 3)) fallback("Video startete nicht (Status " + st + ")");
-        else { try { localStorage.removeItem("musikFehler"); } catch (e) {} }
-      }, Math.max(800, Math.min(1500, HIT * 1000 - (Date.now() - clickAt) - 300)));
+      setTimeout(step, 150);
     };
-    tryStart();
-    setTimeout(() => {
-      if (introMusic !== "yt") return;
-      yt.seekTo(0, true); yt.setVolume(100);
-      $("ytbox").classList.add("show");
-    }, HIT * 1000);
+    step();
   }
 
   function stopIntroMusic() {
     const was = introMusic; introMusic = null;
-    if (was === "own" && ownAudio) {
-      ownGain.gain.setTargetAtTime(0, ac.currentTime, 0.4);
-      setTimeout(() => ownAudio.pause(), 1800);
-    }
     if (was === "yt" && yt) {
       let v = 100;
       const fade = setInterval(() => {
