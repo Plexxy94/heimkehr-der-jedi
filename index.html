@@ -79,6 +79,7 @@
   .ownmusic { color: var(--muted); font-size: 14px; cursor: pointer; text-decoration: underline dotted; }
   .ownmusic:hover { color: var(--gold); }
   #ownName { color: var(--gold); font-size: 13px; min-height: 1em; }
+  #musicState { color: var(--muted); font-size: 12px; }
   /* Kleiner Player unten links (nur sichtbar während das Original läuft) */
   #ytbox {
     position: absolute; left: 16px; bottom: 16px; z-index: 6; width: 200px;
@@ -264,6 +265,7 @@
     </div>
     <label class="ownmusic">🎵 Eigene Musik wählen<input type="file" id="ownFile" accept="audio/*" hidden></label>
     <div id="ownName"></div>
+    <div id="musicState">♪ Original-Musik lädt…</div>
   </div>
   <div class="galaxy">Vor gar nicht langer Zeit, auf einer Baustelle<br>weit, weit weg von zu Hause…</div>
   <div class="crawl-wrap">
@@ -987,21 +989,25 @@
   const YT_ID = "Q0cz6i9K2Ao"; // "Main Title" · John Williams · London Symphony Orchestra (offiziell)
   const HIT = 4.25;            // Sekunden bis der Titel erscheint
   let yt = null, ytReady = false, ytFailed = false, ownAudio = null, ownGain = null, introMusic = null;
+  function musicState(txt) { const el = $("musicState"); if (el) el.textContent = txt; }
+  setTimeout(() => { if (!ytReady && !ytFailed) musicState("⚠ YouTube lädt nicht (Werbeblocker/Tracking-Schutz?) – es kommt die eigene Fanfare"); }, 8000);
+  // Grund des letzten Rückfalls anzeigen, damit man sieht, was schiefging
+  try { const last = localStorage.getItem("musikFehler"); if (last) musicState("Letztes Mal: " + last); } catch (e) {}
 
   window.onYouTubeIframeAPIReady = () => {
     yt = new YT.Player("yt", {
       videoId: YT_ID,
       playerVars: { controls: 0, disablekb: 1, playsinline: 1, rel: 0, modestbranding: 1 },
       events: {
-        onReady: () => { ytReady = true; },
-        onError: () => { ytFailed = true; },
+        onReady: () => { ytReady = true; musicState("♪ Original-Musik bereit"); },
+        onError: e => { ytFailed = true; musicState("⚠ YouTube-Fehler " + e.data + " – es kommt die eigene Fanfare"); },
       },
     });
   };
   (() => {
     const s = document.createElement("script");
     s.src = "https://www.youtube.com/iframe_api";
-    s.onerror = () => { ytFailed = true; };
+    s.onerror = () => { ytFailed = true; musicState("⚠ YouTube wird blockiert (Werbeblocker/Tracking-Schutz?) – es kommt die eigene Fanfare"); };
     document.head.appendChild(s);
   })();
 
@@ -1032,17 +1038,19 @@
     //    Ist der Player beim Klick noch nicht fertig, wird bis kurz vor dem Titel gewartet.
     const clickAt = Date.now();
     introMusic = "yt";
-    const fallback = () => {
+    const fallback = why => {
       if (introMusic !== "yt") return;
+      try { localStorage.setItem("musikFehler", why); } catch (e) {}
+      console.warn("Intro-Musik: Fanfare statt Original –", why);
       try { yt && yt.stopVideo(); } catch (e) {}
       introMusic = "fanfare";
       playFanfare(Math.max(0.3, HIT - (Date.now() - clickAt) / 1000));
     };
     const tryStart = () => {
       if (introMusic !== "yt") return;
-      if (ytFailed) return fallback();
+      if (ytFailed) return fallback("YouTube-Player meldet Fehler/blockiert");
       if (!(yt && ytReady)) {
-        if (Date.now() - clickAt > (HIT - 0.8) * 1000) return fallback();
+        if (Date.now() - clickAt > (HIT - 0.8) * 1000) return fallback("YouTube-Player war nicht rechtzeitig geladen");
         return setTimeout(tryStart, 150);
       }
       yt.setVolume(0); yt.seekTo(0, true); yt.playVideo();
@@ -1050,7 +1058,8 @@
       setTimeout(() => {
         if (introMusic !== "yt") return;
         const st = yt.getPlayerState();
-        if (ytFailed || (st !== 1 && st !== 3)) fallback();
+        if (ytFailed || (st !== 1 && st !== 3)) fallback("Video startete nicht (Status " + st + ")");
+        else { try { localStorage.removeItem("musikFehler"); } catch (e) {} }
       }, Math.max(800, Math.min(1500, HIT * 1000 - (Date.now() - clickAt) - 300)));
     };
     tryStart();
