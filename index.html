@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Die Heimkehr der Jedi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&family=Exo+2:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #ffe81f;
+    --blue: #4fc3ff;
+    --red: #ff3b3b;
+    --text: #e8ecf5;
+    --muted: #8a93a8;
+    --bg: #000;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Exo 2", system-ui, sans-serif;
+    overflow-x: hidden;
+  }
+  #stars { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
+
+  /* --- Intro-Lauftext --- */
+  #intro {
+    position: fixed; inset: 0; z-index: 5;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: #000; transition: opacity 1.2s;
+  }
+  #intro.fade { opacity: 0; pointer-events: none; }
+  .galaxy {
+    color: var(--blue); font-size: clamp(18px, 3.5vw, 30px); text-align: center;
+    padding: 0 16px; animation: galaxy 4.5s forwards;
+  }
+  @keyframes galaxy { 0%{opacity:0} 15%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
+  .crawl-wrap {
+    position: absolute; inset: 0; perspective: 380px; overflow: hidden;
+    display: flex; justify-content: center; opacity: 0;
+    animation: show 0s 4.5s forwards;
+  }
+  @keyframes show { to { opacity: 1; } }
+  .crawl {
+    position: absolute; top: 100%; width: min(90vw, 640px);
+    color: var(--gold); text-align: justify; font-size: clamp(20px, 4vw, 34px);
+    font-weight: 600; line-height: 1.5;
+    transform-origin: 50% 100%; transform: rotateX(25deg);
+    animation: crawl 38s 4.5s linear forwards;
+  }
+  .crawl h2 { text-align: center; font-family: Orbitron, sans-serif; margin-bottom: 0.4em; }
+  .crawl .ep { text-align: center; font-size: 0.7em; letter-spacing: 0.2em; }
+  .crawl p { margin-bottom: 1em; }
+  @keyframes crawl { to { top: -260%; } }
+  #skip {
+    position: absolute; bottom: 20px; right: 20px; z-index: 6;
+    background: transparent; border: 1px solid var(--muted); color: var(--muted);
+    padding: 8px 16px; border-radius: 20px; font: inherit; cursor: pointer;
+  }
+  #skip:hover { color: var(--gold); border-color: var(--gold); }
+
+  /* --- Hauptbereich --- */
+  main {
+    position: relative; z-index: 1; min-height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 16px; text-align: center; gap: 28px;
+  }
+  h1 {
+    font-family: Orbitron, sans-serif; font-weight: 800; color: var(--gold);
+    font-size: clamp(28px, 7vw, 64px); letter-spacing: 0.06em; line-height: 1.1;
+    text-shadow: 0 0 18px rgba(255,232,31,0.45);
+  }
+  .sub { color: var(--muted); font-size: clamp(14px, 2.6vw, 18px); letter-spacing: 0.15em; text-transform: uppercase; }
+
+  .countdown { display: flex; gap: clamp(8px, 2.5vw, 24px); flex-wrap: wrap; justify-content: center; }
+  .unit {
+    min-width: clamp(70px, 18vw, 130px); padding: 14px 8px;
+    border: 1px solid rgba(79,195,255,0.35); border-radius: 12px;
+    background: rgba(10,20,40,0.55); backdrop-filter: blur(3px);
+    box-shadow: 0 0 20px rgba(79,195,255,0.15) inset;
+  }
+  .num {
+    font-family: Orbitron, sans-serif; font-weight: 800;
+    font-size: clamp(32px, 9vw, 72px); color: #fff;
+    text-shadow: 0 0 12px var(--blue), 0 0 28px var(--blue);
+    font-variant-numeric: tabular-nums;
+  }
+  .lbl { color: var(--muted); font-size: clamp(11px, 2vw, 14px); letter-spacing: 0.2em; text-transform: uppercase; margin-top: 4px; }
+
+  /* Lichtschwert-Fortschritt */
+  .saber { width: min(92vw, 640px); display: flex; align-items: center; }
+  .hilt {
+    width: 70px; height: 18px; flex: none; border-radius: 4px;
+    background: linear-gradient(90deg, #555, #ccc 20%, #333 22%, #999 40%, #222 42%, #aaa 60%, #444 62%, #bbb 85%, #222);
+  }
+  .blade-track { flex: 1; height: 10px; position: relative; }
+  .blade {
+    height: 100%; width: 0; border-radius: 0 6px 6px 0;
+    background: #fff;
+    box-shadow: 0 0 6px #fff, 0 0 14px var(--red), 0 0 28px var(--red), 0 0 44px var(--red);
+    transition: width 1s linear;
+  }
+  .saber-txt { color: var(--muted); font-size: 14px; margin-top: -14px; }
+
+  .quote {
+    max-width: 640px; min-height: 3.6em; font-size: clamp(18px, 3.4vw, 24px);
+    font-style: italic; color: var(--text); transition: opacity 0.6s;
+  }
+  .quote small { display: block; margin-top: 8px; font-style: normal; color: var(--gold); font-size: 0.7em; letter-spacing: 0.1em; }
+
+  .status {
+    font-family: Orbitron, sans-serif; color: var(--blue); font-size: clamp(13px, 2.4vw, 16px);
+    letter-spacing: 0.08em; padding: 8px 16px; border: 1px dashed rgba(79,195,255,0.4); border-radius: 8px;
+  }
+
+  button.force {
+    background: transparent; color: var(--gold); border: 2px solid var(--gold);
+    padding: 12px 26px; border-radius: 30px; font-family: Orbitron, sans-serif; font-size: 15px;
+    letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s;
+  }
+  button.force:hover { background: var(--gold); color: #000; box-shadow: 0 0 24px rgba(255,232,31,0.6); }
+
+  .done h1 { animation: pulse 1.2s infinite alternate; }
+  @keyframes pulse { to { text-shadow: 0 0 40px var(--gold), 0 0 80px var(--gold); } }
+
+  footer { position: relative; z-index: 1; text-align: center; color: #555; font-size: 12px; padding: 0 16px 20px; }
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<div id="intro">
+  <div class="galaxy">Vor gar nicht langer Zeit, auf einer Baustelle<br>weit, weit weg von zu Hause…</div>
+  <div class="crawl-wrap">
+    <div class="crawl">
+      <p class="ep">EPISODE VI</p>
+      <h2>DIE HEIMKEHR DER JEDI</h2>
+      <p>Es herrscht Unruhe in der Galaxis. Ein tapferer Jedi wurde fern seiner Heimatwelt stationiert, umgeben von Kaffeeautomaten, Besprechungen und schlechtem WLAN.</p>
+      <p>Tag für Tag kämpft er gegen das finstere Imperium der Arbeitswoche. Seine einzige Hoffnung: ein geheimer Plan, der Freitag um 12:00 Uhr in Kraft tritt.</p>
+      <p>Der Koffer ist gepackt, der Hyperantrieb vorgeheizt. Nur die Zeit selbst steht noch zwischen unserem Helden und seinem eigenen Sofa…</p>
+    </div>
+  </div>
+  <button id="skip">Überspringen ▸</button>
+</div>
+
+<main id="main">
+  <div class="sub">Countdown bis zum Sprung in den Hyperraum</div>
+  <h1 id="title">DIE HEIMKEHR<br>DER JEDI</h1>
+
+  <div class="countdown" id="cd">
+    <div class="unit"><div class="num" id="d">0</div><div class="lbl">Tage</div></div>
+    <div class="unit"><div class="num" id="h">00</div><div class="lbl">Stunden</div></div>
+    <div class="unit"><div class="num" id="m">00</div><div class="lbl">Minuten</div></div>
+    <div class="unit"><div class="num" id="s">00</div><div class="lbl">Sekunden</div></div>
+  </div>
+
+  <div class="saber"><div class="hilt"></div><div class="blade-track"><div class="blade" id="blade"></div></div></div>
+  <div class="saber-txt" id="pct">Lichtschwert lädt…</div>
+
+  <div class="status" id="status">Systemstatus wird ermittelt…</div>
+
+  <div class="quote" id="quote"></div>
+
+  <button class="force" id="next">Nutze die Macht ✦</button>
+</main>
+
+<footer>Abflug: Freitag, 6. November 2026, 12:00 Uhr · Inoffizielle Fan-Spaßseite</footer>
+
+<script>
+  // Abreise: Freitag 06.11.2026, 12:00 deutscher Zeit (MEZ)
+  const TARGET = new Date("2026-11-06T12:00:00+01:00").getTime();
+  // Beginn der Arbeitswoche für den Lichtschwert-Balken
+  const START = new Date("2026-11-02T06:00:00+01:00").getTime();
+
+  const quotes = [
+    ["Möge der Feierabend mit dir sein.", "Alter Pendler-Gruß"],
+    ["Tu es oder tu es nicht. Es gibt keine Überstunden.", "Kleiner grüner Meister"],
+    ["Das ist nicht der Arbeitstag, den du suchst.", "Jedi-Gedankentrick"],
+    ["Geduld du haben musst, junger Heimreisender.", "Kleiner grüner Meister"],
+    ["Ich habe ein ganz mieses Gefühl bei diesem Montag.", "Jeder, jede Woche"],
+    ["Es ist eine Falle! … ein Meeting um 11:45 Uhr.", "Admiral mit Fischkopf"],
+    ["Hilf mir, Freitag 12 Uhr. Du bist meine einzige Hoffnung.", "Hologramm-Nachricht"],
+    ["Ich bin… dein Wochenende.", "Ein dunkler Lord mit Atemproblemen"],
+    ["Ich spüre eine Erschütterung in der Macht… als hätte jemand gerade seinen Koffer zugemacht.", "Alter Einsiedler"],
+    ["Lass den Wookiee packen. Der faltet besser.", "Weiser Schmuggler-Rat"],
+    ["Die Heimreise ist stark in diesem hier.", "Kleiner grüner Meister"],
+    ["Der Hyperantrieb ist vorgeheizt. Wir warten nur noch auf die Stechuhr.", "Bordcomputer"],
+    ["Die Chancen, pünktlich loszukommen, stehen 3.720 zu 1!", "Nervöser goldener Droide"],
+    ["Bieeep boop bip-bip! (Übersetzung: Ich will auch heim.)", "Kleiner Astromech"],
+    ["Das Sofa ruft. Ich höre es. Durch die Macht.", "Erleuchteter Padawan"],
+    ["Nicht ich bin langsam. Die Uhr ist es.", "Ungeduldiger Jedi"],
+    ["Wenn du mich jetzt aufhältst, werde ich mächtiger, als du es dir vorstellen kannst – und zwar zu Hause.", "Weiser Mann in Robe"],
+    ["Ein Jedi spürt keine Ungeduld. Außer donnerstags. Und freitags. Eigentlich ständig.", "Jedi-Kodex (Fußnote)"],
+  ];
+
+  const statuses = [
+    [0.00, "🛰️ Status: Tief im Imperium der Arbeitswoche"],
+    [0.25, "🔧 Status: Droiden werden für den Flug gewartet"],
+    [0.50, "🧳 Status: Halbzeit. Der Koffer wird mental gepackt"],
+    [0.75, "🚀 Status: Hyperantrieb wird vorgeheizt"],
+    [0.90, "⚡ Status: Startfreigabe in Kürze, alle Systeme grün"],
+    [0.98, "🌌 Status: Hand liegt schon am Hyperraum-Hebel!"],
+  ];
+
+  // Intro
+  const intro = document.getElementById("intro");
+  function endIntro() { intro.classList.add("fade"); setTimeout(() => intro.remove(), 1300); }
+  document.getElementById("skip").onclick = endIntro;
+  setTimeout(endIntro, 30000);
+
+  // Sprüche
+  const qEl = document.getElementById("quote");
+  let qi = Math.floor(Math.random() * quotes.length);
+  function showQuote() {
+    qEl.style.opacity = 0;
+    setTimeout(() => {
+      const [t, a] = quotes[qi];
+      qEl.innerHTML = "„" + t + "“<small>— " + a + "</small>";
+      qEl.style.opacity = 1;
+      qi = (qi + 1) % quotes.length;
+    }, 400);
+  }
+  showQuote();
+  let qTimer = setInterval(showQuote, 9000);
+  document.getElementById("next").onclick = () => {
+    clearInterval(qTimer); showQuote(); qTimer = setInterval(showQuote, 9000);
+    warp = 1;
+  };
+
+  // Countdown
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2, "0");
+  let finished = false;
+  function tick() {
+    const now = Date.now();
+    let diff = TARGET - now;
+    if (diff <= 0) {
+      if (!finished) finish();
+      return;
+    }
+    const d = Math.floor(diff / 86400000); diff %= 86400000;
+    const h = Math.floor(diff / 3600000); diff %= 3600000;
+    const m = Math.floor(diff / 60000); diff %= 60000;
+    const s = Math.floor(diff / 1000);
+    $("d").textContent = d; $("h").textContent = pad(h); $("m").textContent = pad(m); $("s").textContent = pad(s);
+
+    const p = Math.min(1, Math.max(0, (now - START) / (TARGET - START)));
+    $("blade").style.width = (p * 100).toFixed(2) + "%";
+    $("pct").textContent = "Lichtschwert zu " + (p * 100).toFixed(1) + " % ausgefahren";
+    let st = statuses[0][1];
+    for (const [th, txt] of statuses) if (p >= th) st = txt;
+    $("status").textContent = st;
+  }
+  function finish() {
+    finished = true;
+    document.body.classList.add("done");
+    $("title").innerHTML = "SPRUNG IN DEN<br>HYPERRAUM!";
+    $("cd").innerHTML = '<div class="unit"><div class="num">0</div><div class="lbl">Ab nach Hause!</div></div>';
+    $("blade").style.width = "100%";
+    $("pct").textContent = "Lichtschwert voll ausgefahren";
+    $("status").textContent = "🏠 Status: Der Jedi ist auf dem Heimweg. Möge die Autobahn frei sein!";
+    clearInterval(qTimer);
+    qEl.innerHTML = "„Endlich. Die Macht ist mit dir. Und das Wochenende auch.“<small>— Alle</small>";
+    warp = 1; warpForever = true;
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  // Sternenfeld mit Hyperraum-Effekt
+  const c = $("stars"), ctx = c.getContext("2d");
+  let W, H, stars = [], warp = 0, warpForever = false;
+  function resize() {
+    W = c.width = innerWidth * devicePixelRatio;
+    H = c.height = innerHeight * devicePixelRatio;
+  }
+  addEventListener("resize", resize); resize();
+  for (let i = 0; i < 500; i++) stars.push({ x: (Math.random() - 0.5) * 2, y: (Math.random() - 0.5) * 2, z: Math.random() });
+  function frame() {
+    const speed = 0.0015 + warp * 0.03;
+    ctx.fillStyle = warp > 0.05 ? "rgba(0,0,0,0.25)" : "#000";
+    ctx.fillRect(0, 0, W, H);
+    const cx = W / 2, cy = H / 2, f = Math.min(W, H) * 0.5;
+    for (const s of stars) {
+      const pz = s.z;
+      s.z -= speed;
+      if (s.z <= 0.01) { s.x = (Math.random() - 0.5) * 2; s.y = (Math.random() - 0.5) * 2; s.z = 1; continue; }
+      const sx = cx + (s.x / s.z) * f, sy = cy + (s.y / s.z) * f;
+      const px = cx + (s.x / pz) * f, py = cy + (s.y / pz) * f;
+      const b = 1 - s.z;
+      ctx.strokeStyle = `rgba(${200 + 55 * b},${220 + 35 * b},255,${b})`;
+      ctx.lineWidth = Math.max(1, b * 2.5 * devicePixelRatio);
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(sx, sy); ctx.stroke();
+    }
+    if (!warpForever) warp *= 0.97; else warp = Math.min(1, warp + 0.01);
+    requestAnimationFrame(frame);
+  }
+  frame();
+</script>
+</body>
+</html>
