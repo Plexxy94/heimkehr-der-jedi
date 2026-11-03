@@ -14,7 +14,27 @@
     --text: #e8ecf5;
     --muted: #8a93a8;
     --bg: #000;
+    --saber: #4fc3ff;
   }
+  /* Dunkle Seite: alles in Sith-Rot */
+  body.sith {
+    --gold: #ff2b2b;
+    --blue: #ff4a3d;
+    --saber: #ff1a1a;
+    --muted: #a88a8a;
+  }
+
+  #side {
+    position: fixed; top: 14px; right: 14px; z-index: 4;
+    display: flex; border: 1px solid var(--muted); border-radius: 22px; overflow: hidden;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(3px);
+  }
+  #side button {
+    background: transparent; border: 0; color: var(--muted); cursor: pointer;
+    font-family: Orbitron, sans-serif; font-size: 12px; letter-spacing: 0.08em; padding: 8px 14px;
+    transition: all 0.25s;
+  }
+  #side button.on { background: var(--saber); color: #000; box-shadow: 0 0 18px var(--saber); }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
   body {
@@ -99,8 +119,8 @@
   .blade {
     height: 100%; width: 0; border-radius: 0 6px 6px 0;
     background: #fff;
-    box-shadow: 0 0 6px #fff, 0 0 14px var(--red), 0 0 28px var(--red), 0 0 44px var(--red);
-    transition: width 1s linear;
+    box-shadow: 0 0 6px #fff, 0 0 14px var(--saber), 0 0 28px var(--saber), 0 0 44px var(--saber);
+    transition: width 1s linear, box-shadow 0.4s;
   }
   .saber-txt { color: var(--muted); font-size: 14px; margin-top: -14px; }
 
@@ -145,6 +165,11 @@
   <button id="skip">Überspringen ▸</button>
 </div>
 
+<div id="side">
+  <button data-side="jedi">☀ Helle Seite</button>
+  <button data-side="sith">☾ Dunkle Seite</button>
+</div>
+
 <main id="main">
   <div class="sub">Countdown bis zum Sprung in den Hyperraum</div>
   <h1 id="title">DIE HEIMKEHR<br>DER JEDI</h1>
@@ -174,35 +199,79 @@
   // Beginn des Einsatzes für den Lichtschwert-Balken
   const START = new Date("2026-10-25T00:00:00+02:00").getTime();
 
-  const quotes = [
-    ["Möge der Feierabend mit dir sein.", "Alter Pendler-Gruß"],
-    ["Tu es oder tu es nicht. Es gibt keine Überstunden.", "Kleiner grüner Meister"],
-    ["Das ist nicht der Arbeitstag, den du suchst.", "Jedi-Gedankentrick"],
-    ["Geduld du haben musst, junger Heimreisender.", "Kleiner grüner Meister"],
-    ["Ich habe ein ganz mieses Gefühl bei diesem Montag.", "Jeder, jede Woche"],
-    ["Es ist eine Falle! … ein Meeting um 11:45 Uhr.", "Admiral mit Fischkopf"],
-    ["Hilf mir, Freitag 12 Uhr. Du bist meine einzige Hoffnung.", "Hologramm-Nachricht"],
-    ["Ich bin… dein Wochenende.", "Ein dunkler Lord mit Atemproblemen"],
-    ["Ich spüre eine Erschütterung in der Macht… als hätte jemand gerade seinen Koffer zugemacht.", "Alter Einsiedler"],
-    ["Lass den Wookiee packen. Der faltet besser.", "Weiser Schmuggler-Rat"],
-    ["Die Heimreise ist stark in diesem hier.", "Kleiner grüner Meister"],
-    ["Der Hyperantrieb ist vorgeheizt. Wir warten nur noch auf die Stechuhr.", "Bordcomputer"],
-    ["Die Chancen, pünktlich loszukommen, stehen 3.720 zu 1!", "Nervöser goldener Droide"],
-    ["Bieeep boop bip-bip! (Übersetzung: Ich will auch heim.)", "Kleiner Astromech"],
-    ["Das Sofa ruft. Ich höre es. Durch die Macht.", "Erleuchteter Padawan"],
-    ["Nicht ich bin langsam. Die Uhr ist es.", "Ungeduldiger Jedi"],
-    ["Wenn du mich jetzt aufhältst, werde ich mächtiger, als du es dir vorstellen kannst – und zwar zu Hause.", "Weiser Mann in Robe"],
-    ["Ein Jedi spürt keine Ungeduld. Außer donnerstags. Und freitags. Eigentlich ständig.", "Jedi-Kodex (Fußnote)"],
-  ];
+  let W, H, stars = [], warp = 0, warpForever = false;
 
-  const statuses = [
-    [0.00, "🛰️ Status: Tief im Imperium der Arbeitswoche"],
-    [0.25, "🔧 Status: Droiden werden für den Flug gewartet"],
-    [0.50, "🧳 Status: Halbzeit. Der Koffer wird mental gepackt"],
-    [0.75, "🚀 Status: Hyperantrieb wird vorgeheizt"],
-    [0.90, "⚡ Status: Startfreigabe in Kürze, alle Systeme grün"],
-    [0.98, "🌌 Status: Hand liegt schon am Hyperraum-Hebel!"],
-  ];
+  const SIDES = {
+    jedi: {
+      title: "DIE HEIMKEHR<br>DER JEDI",
+      button: "Nutze die Macht ✦",
+      doneStatus: "🏠 Status: Der Jedi ist auf dem Heimweg. Möge die Autobahn frei sein!",
+      doneQuote: "„Endlich. Die Macht ist mit dir. Und das Wochenende auch.“<small>— Alle</small>",
+      quotes: [
+        ["Möge der Feierabend mit dir sein.", "Alter Pendler-Gruß"],
+        ["Tu es oder tu es nicht. Es gibt keine Überstunden.", "Kleiner grüner Meister"],
+        ["Das ist nicht der Arbeitstag, den du suchst.", "Jedi-Gedankentrick"],
+        ["Geduld du haben musst, junger Heimreisender.", "Kleiner grüner Meister"],
+        ["Ich habe ein ganz mieses Gefühl bei diesem Montag.", "Jeder, jede Woche"],
+        ["Es ist eine Falle! … ein Meeting um 11:45 Uhr.", "Admiral mit Fischkopf"],
+        ["Hilf mir, Freitag 12 Uhr. Du bist meine einzige Hoffnung.", "Hologramm-Nachricht"],
+        ["Ich spüre eine Erschütterung in der Macht… als hätte jemand gerade seinen Koffer zugemacht.", "Alter Einsiedler"],
+        ["Lass den Wookiee packen. Der faltet besser.", "Weiser Schmuggler-Rat"],
+        ["Die Heimreise ist stark in diesem hier.", "Kleiner grüner Meister"],
+        ["Der Hyperantrieb ist vorgeheizt. Wir warten nur noch auf die Stechuhr.", "Bordcomputer"],
+        ["Die Chancen, pünktlich loszukommen, stehen 3.720 zu 1!", "Nervöser goldener Droide"],
+        ["Bieeep boop bip-bip! (Übersetzung: Ich will auch heim.)", "Kleiner Astromech"],
+        ["Das Sofa ruft. Ich höre es. Durch die Macht.", "Erleuchteter Padawan"],
+        ["Nicht ich bin langsam. Die Uhr ist es.", "Ungeduldiger Jedi"],
+        ["Wenn du mich jetzt aufhältst, werde ich mächtiger, als du es dir vorstellen kannst – und zwar zu Hause.", "Weiser Mann in Robe"],
+        ["Ein Jedi spürt keine Ungeduld. Außer donnerstags. Und freitags. Eigentlich ständig.", "Jedi-Kodex (Fußnote)"],
+      ],
+      statuses: [
+        [0.00, "🛰️ Status: Tief im Imperium der Arbeitswoche"],
+        [0.25, "🔧 Status: Droiden werden für den Flug gewartet"],
+        [0.50, "🧳 Status: Halbzeit. Der Koffer wird mental gepackt"],
+        [0.75, "🚀 Status: Hyperantrieb wird vorgeheizt"],
+        [0.90, "⚡ Status: Startfreigabe in Kürze, alle Systeme grün"],
+        [0.98, "🌌 Status: Hand liegt schon am Hyperraum-Hebel!"],
+      ],
+    },
+    sith: {
+      title: "DIE HEIMKEHR<br>DES SITH",
+      button: "Entfessle den Zorn ✦",
+      doneStatus: "🏠 Status: Der Sith-Lord kehrt heim. Die Autobahn wird sich ihm beugen!",
+      doneQuote: "„Alles verlief genau so, wie ich es vorhergesehen habe. Freitag. 12 Uhr.“<small>— Der Imperator</small>",
+      quotes: [
+        ["Ich bin… dein Wochenende.", "Ein dunkler Lord mit Atemproblemen"],
+        ["Ich finde Ihren Mangel an Feierabend… beunruhigend.", "Dunkler Lord, leicht gereizt"],
+        ["Du unterschätzt die Macht des Wochenendes!", "Runzliger Imperator"],
+        ["Komm zur dunklen Seite. Wir haben freitags ab 12 frei.", "Sith-Anwerbebroschüre"],
+        ["Gib deinem Zorn nach. Und dann pack deinen Koffer.", "Runzliger Imperator"],
+        ["Unbegrenzte… FREIZEIT!", "Runzliger Imperator"],
+        ["Endlich werden wir Rache an der Arbeitswoche nehmen.", "Dunkler Lord"],
+        ["*schweres Atmen* … Wie lange noch?", "Dunkler Lord im Aufzug"],
+        ["Es gibt keine Überstunden, es gibt nur die Macht.", "Sith-Kodex (Freitagsfassung)"],
+        ["Durch den Sieg zerbrechen meine Ketten. Und dann fahr ich heim.", "Sith-Kodex (Freitagsfassung)"],
+        ["Noch ein Meeting, und ich würge jemanden mit der Macht.", "Dunkler Lord, Donnerstag"],
+        ["Der Todesstern ist einsatzbereit. Ziel: der Montag.", "Imperialer Offizier"],
+        ["Die Heimreise ist… unvermeidlich.", "Dunkler Lord"],
+        ["Ich spüre großen Hass in dir. Auf die Stechuhr.", "Runzliger Imperator"],
+        ["Die Jedi haben Geduld. Ich habe einen gepackten Koffer.", "Ungeduldiger Sith"],
+        ["Wir haben Kekse. Und Freitag ab 12 Uhr frei.", "Dunkle Seite, Personalabteilung"],
+      ],
+      statuses: [
+        [0.00, "🛰️ Status: Gefangen in der Rebellenbasis der Arbeitswoche"],
+        [0.25, "🔧 Status: Sternzerstörer wird betankt"],
+        [0.50, "🧳 Status: Halbzeit. Der Umhang ist schon gebügelt"],
+        [0.75, "🚀 Status: Hyperantrieb wird vorgeheizt, der Zorn auch"],
+        [0.90, "⚡ Status: Die Flotte wartet auf den Befehl des Lords"],
+        [0.98, "🌌 Status: Imperiale Fähre bereit zum Abflug!"],
+      ],
+    },
+  };
+
+  let side = "sith";
+  try { side = localStorage.getItem("seite") === "jedi" ? "jedi" : "sith"; } catch (e) {}
+  let quotes = SIDES[side].quotes, statuses = SIDES[side].statuses;
 
   // Intro
   const intro = document.getElementById("intro");
@@ -216,15 +285,15 @@
   function showQuote() {
     qEl.style.opacity = 0;
     setTimeout(() => {
-      const [t, a] = quotes[qi];
+      const [t, a] = quotes[qi % quotes.length];
       qEl.innerHTML = "„" + t + "“<small>— " + a + "</small>";
       qEl.style.opacity = 1;
       qi = (qi + 1) % quotes.length;
     }, 400);
   }
-  showQuote();
-  let qTimer = setInterval(showQuote, 9000);
+  let qTimer;
   document.getElementById("next").onclick = () => {
+    if (finished) { warp = 1; return; }
     clearInterval(qTimer); showQuote(); qTimer = setInterval(showQuote, 9000);
     warp = 1;
   };
@@ -260,17 +329,39 @@
     $("cd").innerHTML = '<div class="unit"><div class="num">0</div><div class="lbl">Ab nach Hause!</div></div>';
     $("blade").style.width = "100%";
     $("pct").textContent = "Lichtschwert voll ausgefahren";
-    $("status").textContent = "🏠 Status: Der Jedi ist auf dem Heimweg. Möge die Autobahn frei sein!";
+    $("status").textContent = SIDES[side].doneStatus;
     clearInterval(qTimer);
-    qEl.innerHTML = "„Endlich. Die Macht ist mit dir. Und das Wochenende auch.“<small>— Alle</small>";
+    qEl.innerHTML = SIDES[side].doneQuote;
     warp = 1; warpForever = true;
   }
-  tick();
+
+  // Seitenwahl: Helle oder Dunkle Seite
+  function setSide(s, flash) {
+    side = s;
+    try { localStorage.setItem("seite", s); } catch (e) {}
+    const cfg = SIDES[s];
+    document.body.classList.toggle("sith", s === "sith");
+    document.title = s === "sith" ? "Die Heimkehr des Sith" : "Die Heimkehr der Jedi";
+    document.querySelectorAll("#side button").forEach(b => b.classList.toggle("on", b.dataset.side === s));
+    quotes = cfg.quotes; statuses = cfg.statuses;
+    $("next").textContent = cfg.button;
+    if (finished) { finish(); }
+    else {
+      $("title").innerHTML = cfg.title;
+      qi = Math.floor(Math.random() * quotes.length);
+      clearInterval(qTimer); showQuote(); qTimer = setInterval(showQuote, 9000);
+      tick();
+    }
+    if (flash) warp = 1;
+  }
+  document.querySelectorAll("#side button").forEach(b => b.onclick = () => setSide(b.dataset.side, true));
+
+  setSide(side, false);
   setInterval(tick, 1000);
 
   // Sternenfeld mit Hyperraum-Effekt
   const c = $("stars"), ctx = c.getContext("2d");
-  let W, H, stars = [], warp = 0, warpForever = false;
+
   function resize() {
     W = c.width = innerWidth * devicePixelRatio;
     H = c.height = innerHeight * devicePixelRatio;
@@ -289,7 +380,9 @@
       const sx = cx + (s.x / s.z) * f, sy = cy + (s.y / s.z) * f;
       const px = cx + (s.x / pz) * f, py = cy + (s.y / pz) * f;
       const b = 1 - s.z;
-      ctx.strokeStyle = `rgba(${200 + 55 * b},${220 + 35 * b},255,${b})`;
+      ctx.strokeStyle = side === "sith"
+        ? `rgba(255,${150 + 80 * b},${140 + 70 * b},${b})`
+        : `rgba(${200 + 55 * b},${220 + 35 * b},255,${b})`;
       ctx.lineWidth = Math.max(1, b * 2.5 * devicePixelRatio);
       ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(sx, sy); ctx.stroke();
     }
