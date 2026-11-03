@@ -370,7 +370,11 @@
 
 <script>
   // Abreise: Freitag 06.11.2026, 12:00 deutscher Zeit (MEZ)
-  const TARGET = new Date("2026-11-06T12:00:00+01:00").getTime();
+  // Testmodus über die Adresse: ?test=ende (sofort Endszene) oder ?test=15 (Ablauf in 15 Sekunden)
+  const TEST = new URLSearchParams(location.search).get("test");
+  const TARGET = TEST === "ende" ? Date.now() - 60000
+    : TEST && !isNaN(TEST) ? Date.now() + Number(TEST) * 1000
+    : new Date("2026-11-06T12:00:00+01:00").getTime();
   // Beginn des Einsatzes für den Lichtschwert-Balken
   const START = new Date("2026-10-25T00:00:00+02:00").getTime();
 
