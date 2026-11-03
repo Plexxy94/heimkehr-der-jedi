@@ -87,6 +87,12 @@
     font-size: 11px; color: var(--muted);
   }
   #ytbox.show { opacity: 0.8; }
+  #ytbox.ad {
+    opacity: 1; pointer-events: auto; width: 320px; left: 50%; bottom: 12%; transform: translateX(-50%);
+    text-align: center; font-size: 13px; color: var(--gold);
+  }
+  #ytbox.ad iframe { width: 320px; height: 180px; }
+  #gate #waitAlt { display: none; margin-top: 4px; font-size: 12px; padding: 8px 16px; }
   #ytbox iframe { width: 200px; height: 113px; border: 0; border-radius: 6px; display: block; margin-bottom: 4px; }
   @keyframes galaxy { 0%{opacity:0} 15%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
   .crawl-wrap {
@@ -264,6 +270,7 @@
       <button id="goQuiet" class="quiet">Ohne Ton</button>
     </div>
     <div class="waitmsg">⏳ Warte … Übertragung wird initiiert</div>
+    <button id="waitAlt" class="quiet">Nicht warten – eigene Fanfare</button>
   </div>
   <div class="galaxy">Vor gar nicht langer Zeit, auf einer Baustelle<br>weit, weit weg von zu Hause…</div>
   <div class="crawl-wrap">
@@ -275,7 +282,7 @@
       <p>Der Koffer ist gepackt, der Hyperantrieb vorgeheizt. Nur die Zeit selbst steht noch zwischen unserem Helden und seinem eigenen Sofa…</p>
     </div>
   </div>
-  <div id="ytbox"><div id="yt"></div><span>♪ John Williams – Main Title</span></div>
+  <div id="ytbox"><div id="yt"></div><span id="ytcap">♪ John Williams – Main Title</span></div>
   <button id="skip">Überspringen ▸</button>
 </div>
 
@@ -444,7 +451,8 @@
   }
   document.getElementById("goSound").onclick = () => startIntro(true);
   document.getElementById("goQuiet").onclick = () => startIntro(false);
-  document.getElementById("skip").onclick = endIntro;
+  document.getElementById("skip").onclick = () => { endIntro(); if (cancelWait) cancelWait(); };
+  document.getElementById("waitAlt").onclick = () => cancelWait && cancelWait();
 
   // Sprüche
   const qEl = document.getElementById("quote");
@@ -1003,11 +1011,12 @@
   // ===== Intro-Musik: Original von YouTube, eigene Fanfare als Rückfall =====
   const YT_ID = "Q0cz6i9K2Ao"; // "Main Title" · John Williams · London Symphony Orchestra (offiziell)
   const HIT = 4.25;            // Sekunden bis der Titel erscheint
-  const WAIT_MAX = 12000;      // so lange wird höchstens auf YouTube gewartet
+  const WAIT_MAX = 45000;      // so lange wird höchstens auf YouTube gewartet (Werbung!)
   let yt = null, ytReady = false, ytFailed = false, introMusic = null;
 
   window.onYouTubeIframeAPIReady = () => {
     yt = new YT.Player("yt", {
+      host: "https://www.youtube-nocookie.com",
       videoId: YT_ID,
       playerVars: { controls: 0, disablekb: 1, playsinline: 1, rel: 0, modestbranding: 1 },
       events: {
@@ -1023,24 +1032,38 @@
     document.head.appendChild(s);
   })();
 
-  // Startet das Video leise und meldet erst zurück, wenn es wirklich läuft (oder nicht klappt)
+  // Startet das Video leise und meldet erst zurück, wenn das eigentliche Stück läuft.
+  // Spielt YouTube vorher Werbung, wird gewartet; der Player wird dann sichtbar,
+  // damit man überspringbare Werbung wegklicken kann.
+  let cancelWait = null;
   function prepareMusic(done) {
-    const t0 = Date.now();
+    const t0 = Date.now(), box = $("ytbox");
     let finished = false, started = false;
     const finish = ok => {
       if (finished) return;
-      finished = true;
+      finished = true; cancelWait = null;
+      box.classList.remove("ad");
+      $("ytcap").textContent = "♪ John Williams – Main Title";
       if (!ok) { try { yt && yt.stopVideo(); } catch (e) {} }
       done(ok);
     };
+    cancelWait = () => finish(false);
     const step = () => {
       if (finished) return;
       if (ytFailed || Date.now() - t0 > WAIT_MAX) return finish(false);
       if (yt && ytReady) {
         if (!started) { started = true; yt.setVolume(0); yt.seekTo(0, true); yt.playVideo(); }
-        if (yt.getPlayerState() === 1) return finish(true);
+        // Während Werbung steht die Zeit des eigentlichen Videos still
+        const data = yt.getVideoData ? yt.getVideoData() : {};
+        if (yt.getPlayerState() === 1 && yt.getCurrentTime() > 0.25 && (!data.video_id || data.video_id === YT_ID))
+          return finish(true);
+        if (Date.now() - t0 > 2500 && !box.classList.contains("ad")) {
+          box.classList.add("ad");
+          $("ytcap").textContent = "📺 YouTube zeigt evtl. Werbung – falls möglich, hier überspringen";
+          $("waitAlt").style.display = "inline-block";
+        }
       }
-      setTimeout(step, 150);
+      setTimeout(step, 200);
     };
     step();
   }
